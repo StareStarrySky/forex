@@ -1,0 +1,577 @@
+package xyz.starestarrysky.forex.jForexj
+
+import com.dukascopy.api.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
+import xyz.starestarrysky.forex.jForexj.model.config.Config
+import xyz.starestarrysky.forex.server.entity.TradeRecord
+import xyz.starestarrysky.forex.server.manager.ConfigManager
+import xyz.starestarrysky.forex.server.manager.EmailManager
+//import xyz.starestarrysky.forex.server.manager.OrderManager
+//import xyz.starestarrysky.forex.server.manager.TradeRecordManager
+
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.math.abs
+
+@Component
+class Strategy : IStrategy {
+    @Autowired
+    private lateinit var configManager: ConfigManager
+
+//    @Autowired
+//    private lateinit var orderManager: OrderManager
+
+    //    @Autowired
+//    private lateinit var tradeRecordManager: TradeRecordManager
+    @Autowired
+    private lateinit var emailManager: EmailManager
+
+    @Autowired
+    private lateinit var originalConfig: Config
+
+    @Autowired
+    private lateinit var orderMap: MutableMap<String, IOrder?>
+
+    private lateinit var iContext: IContext
+    private lateinit var iEngine: IEngine
+
+    private val currentBigPeriod = Period.FOUR_HOURS
+    private val currentSmallPeriod = Period.FIVE_MINS
+//    private val currentInstruments = arrayOf(
+//        Instrument.GBPUSD, //44
+//        Instrument.USDJPY, //34
+//        Instrument.GBPJPY //44
+//        Instrument.USDCNH, //101
+//        Instrument.XAUUSD, //62
+//        Instrument.EURUSD, //39
+//        Instrument.EURGBP, //39
+//        Instrument.EURJPY, //39
+//        Instrument.HKDJPY, //14
+//        Instrument.TRYJPY, //19
+//        Instrument.ZARJPY, //8
+//        Instrument.LIGHTCMDUSD, //606
+//        Instrument.BTCUSD //642
+//    )
+//    private val bufferRandom = 5
+//    private val bufferRandom = 50
+//    private val tradeAmount = 0.001
+//    private val tradeAmount = 0.000001
+
+    private val labelPrefix = "ZXY_IVF"
+    private val instruments = arrayListOf(Instrument.GBPUSD, Instrument.USDJPY, Instrument.GBPJPY)
+
+    override fun onStart(context: IContext) {
+        iContext = context
+        iEngine = context.engine
+
+        this.subscriptionInstrumentCheck(instruments)
+        this.checkOrders(instruments)
+    }
+
+    override fun onTick(instrument: Instrument, tick: ITick) {
+//        val order = orderManager.getOrder()
+//        if (instrument != order.instrument) {
+//            return
+//        }
+//        if (order.isValid) {
+//            this.createOrder(order.instrument, order.orderCommand, order.tradeAmount)
+//            order.isValid = false
+//            orderManager.updateOrder(order)
+//        }
+    }
+
+    override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {
+        val config = configManager.getConfig()
+        if (!config.instruments.contains(instrument) || !(period == currentBigPeriod || period == currentSmallPeriod)) {
+            return
+        }
+        val currentBigPeriodBarHigh = this.getBar(instrument, currentBigPeriod).high.toBigDecimal()
+        val currentBigPeriodBarLow = this.getBar(instrument, currentBigPeriod).low.toBigDecimal()
+        val currentBigPeriodBarOpen = this.getBar(instrument, currentBigPeriod).open.toBigDecimal()
+        val currentSmallPeriodBarOpen = this.getBar(instrument, currentSmallPeriod).open.toBigDecimal()
+
+        this.detail(config, instrument, currentBigPeriodBarHigh, currentBigPeriodBarLow, currentBigPeriodBarOpen, currentSmallPeriodBarOpen)
+    }
+
+    override fun onMessage(message: IMessage) {}
+
+    override fun onAccount(account: IAccount) {}
+
+    override fun onStop() {
+        iContext.stop()
+    }
+
+    /**
+     * 在context里添加不存在的货币对
+     */
+    private fun subscriptionInstrumentCheck(instrumentList: List<Instrument>) {
+        try {
+            if (!iContext.subscribedInstruments.containsAll(instrumentList.toMutableSet())) {
+                val instruments: MutableSet<Instrument> = HashSet()
+                instruments.addAll(instrumentList)
+                iContext.setSubscribedInstruments(instruments, true)
+                Thread.sleep(100)
+            }
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 提取订单
+     */
+    private fun checkOrders(instruments: List<Instrument>) {
+        for (instrument in instruments) {
+            val orderList = arrayListOf<IOrder>()
+            try {
+                for (order in iEngine.orders) {
+                    if (order.label.startsWith(labelPrefix) && instrument == order.instrument) {
+                        orderList.add(order)
+                    }
+                }
+            } catch (e: JFException) {
+                throw e
+            }
+            when {
+                orderList.isEmpty() -> this@Strategy.orderMap[instrument.name] = null
+                orderList.size == 1 -> this@Strategy.orderMap[instrument.name] = orderList[0]
+                else -> throw JFException(JFException.Error.ORDERS_UNAVAILABLE)
+            }
+        }
+    }
+
+    /**
+     * 把某价格，按当前货币对波动一个点的小数位数+1，来进行>=5的四舍五入
+     */
+    private fun round(price: Double, instrument: Instrument): BigDecimal {
+        return price.toBigDecimal().setScale(instrument.pipScale + 1, RoundingMode.HALF_UP)
+    }
+
+    @Throws(JFException::class)
+    private fun getBar(instrument: Instrument, period: Period): IBar {
+        return iContext.history.getBar(instrument, period, OfferSide.BID, 0)
+    }
+
+    private fun getLabel(): String {
+        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss")
+        val currentTime = sdf.format(System.currentTimeMillis())
+        return labelPrefix + currentTime + generateRandom() + generateRandom()
+    }
+
+    private fun generateRandom(): String {
+        val randomNumber = (Math.random() * 10000).toInt()
+        var answer = "" + randomNumber
+        if (answer.length > 3) {
+            answer = answer.substring(0, 4)
+        }
+        return answer
+    }
+
+    /**
+     * start
+     */
+    private fun detail(config: Config, instrument: Instrument, bigPeriodBarHigh: BigDecimal, bigPeriodBarLow: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        if (smallPeriodBarOpen > config.topStopLoss.toBigDecimal() || (smallPeriodBarOpen < config.topStopLoss.toBigDecimal() && smallPeriodBarOpen > config.topSell.toBigDecimal()) || (abs(config.topSell - smallPeriodBarOpen.toDouble()) < abs(smallPeriodBarOpen.toDouble() - config.bottomBuy))) {
+            // 通道顶部
+            this.topDetail(config, instrument, bigPeriodBarHigh, bigPeriodBarLow, bigPeriodBarOpen, smallPeriodBarOpen)
+        } else {
+            // 通道底部
+            this.bottomDetail(config, instrument, bigPeriodBarHigh, bigPeriodBarLow, bigPeriodBarOpen, smallPeriodBarOpen)
+        }
+    }
+
+    private fun topDetail(config: Config, instrument: Instrument, bigPeriodBarHigh: BigDecimal, bigPeriodBarLow: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        val bufferRandom = config.bufferRandom
+        val bufferPoint = this.round(instrument.pipValue * (Math.random() * bufferRandom).toInt(), instrument)
+
+        val toTopStopLoss = config.topStopLoss.toBigDecimal()
+        val toTopSell = config.topSell.toBigDecimal()
+
+        val topStopLossBig = toTopStopLoss + bufferPoint
+        val topStopLossSmall = toTopStopLoss - bufferPoint
+        val topSellBig = toTopSell + bufferPoint
+        val topSellSmall = toTopSell - bufferPoint
+
+        if (topStopLossSmall > topSellBig) {
+            /**
+             *      |          -
+             *      |      -----|----- -----------
+             * -----|-----      |          -
+             *      |-     -----|----- -----|-----
+             *     -             -           -
+             */
+            if (((bigPeriodBarOpen < topSellSmall && bigPeriodBarHigh > toTopSell) || bigPeriodBarOpen > topSellBig) && smallPeriodBarOpen < topSellSmall) {
+                val order = (this@Strategy.orderMap[instrument.name])
+                if (order == null) {
+                    this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                    if (smallPeriodBarOpen < originalConfig.topSell.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.topStopLoss = originalConfig.topSell
+                            this.topSell = (originalConfig.topSell.toBigDecimal() - (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+                        })
+                    } else if (smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal() && smallPeriodBarOpen > originalConfig.topSell.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+                        })
+                    }
+                } else {
+                    if (order.state == IOrder.State.FILLED) {
+                        if (order.isLong) {
+                            order.close()
+                            this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                            if (smallPeriodBarOpen < originalConfig.topSell.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.topStopLoss = originalConfig.topSell
+                                    this.topSell = (originalConfig.topSell.toBigDecimal() - (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+                                })
+                            } else if (smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal() && smallPeriodBarOpen > originalConfig.topSell.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+                                })
+                            }
+                        }
+                    } else {
+                        this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                        if (smallPeriodBarOpen < originalConfig.topSell.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.topStopLoss = originalConfig.topSell
+                                this.topSell = (originalConfig.topSell.toBigDecimal() - (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+                            })
+                        } else if (smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal() && smallPeriodBarOpen > originalConfig.topSell.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+                            })
+                        }
+                    }
+                }
+            }
+            /**
+             *      -           -            -
+             * ----|------ ----|------     -|
+             *     |          -        -----|-----
+             * ----|------ -----------      |
+             *    -                         |
+             */
+            if ((bigPeriodBarOpen < topStopLossSmall || (bigPeriodBarOpen > topStopLossBig && bigPeriodBarLow < toTopStopLoss)) && smallPeriodBarOpen > topStopLossBig) {
+                val order = this@Strategy.orderMap[instrument.name]
+                if (order == null) {
+                    this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                    if (smallPeriodBarOpen > originalConfig.topStopLoss.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.topStopLoss = (originalConfig.topStopLoss.toBigDecimal() + (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+                            this.topSell = originalConfig.topStopLoss
+
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+                        })
+                    } else if (smallPeriodBarOpen > originalConfig.topSell.toBigDecimal() && smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+                        })
+                    }
+                } else {
+                    if (order.state == IOrder.State.FILLED) {
+                        if (!order.isLong) {
+                            order.close()
+                            this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                            if (smallPeriodBarOpen > originalConfig.topStopLoss.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.topStopLoss = (originalConfig.topStopLoss.toBigDecimal() + (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+                                    this.topSell = originalConfig.topStopLoss
+
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+                                })
+                            } else if (smallPeriodBarOpen > originalConfig.topSell.toBigDecimal() && smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+                                })
+                            }
+                        }
+                    } else {
+                        this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                        if (smallPeriodBarOpen > originalConfig.topStopLoss.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.topStopLoss = (originalConfig.topStopLoss.toBigDecimal() + (originalConfig.topStopLoss.toBigDecimal() - originalConfig.topSell.toBigDecimal())).toDouble()
+                                this.topSell = originalConfig.topStopLoss
+
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+                            })
+                        } else if (smallPeriodBarOpen > originalConfig.topSell.toBigDecimal() && smallPeriodBarOpen < originalConfig.topStopLoss.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun bottomDetail(config: Config, instrument: Instrument, bigPeriodBarHigh: BigDecimal, bigPeriodBarLow: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        val bufferRandom = config.bufferRandom
+        val bufferPoint = this.round(instrument.pipValue * (Math.random() * bufferRandom).toInt(), instrument)
+
+        val toBottomBuy = config.bottomBuy.toBigDecimal()
+        val toBottomStopLoss = config.bottomStopLoss.toBigDecimal()
+
+        val bottomBuyBig = toBottomBuy + bufferPoint
+        val bottomBuySmall = toBottomBuy - bufferPoint
+        val bottomStopLossBig = toBottomStopLoss + bufferPoint
+        val bottomStopLossSmall = toBottomStopLoss - bufferPoint
+
+        if (bottomBuySmall > bottomStopLossBig) {
+            /**
+             *     -             -           -
+             *      |-     -----|----- -----|-----
+             * -----|-----      |          -
+             *      |      -----|----- -----------
+             *      |          -
+             */
+            if (((bigPeriodBarOpen > bottomBuyBig && bigPeriodBarLow < toBottomBuy) || bigPeriodBarOpen < bottomBuySmall) && smallPeriodBarOpen > bottomBuyBig) {
+                val order = this@Strategy.orderMap[instrument.name]
+                if (order == null) {
+                    this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                    if (smallPeriodBarOpen > originalConfig.bottomBuy.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.bottomBuy = (originalConfig.bottomBuy.toBigDecimal() + (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+                            this.bottomStopLoss = originalConfig.bottomBuy
+
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+                        })
+                    } else if (smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal() && smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+                        })
+                    }
+                } else {
+                    if (order.state == IOrder.State.FILLED) {
+                        if (!order.isLong) {
+                            order.close()
+                            this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                            if (smallPeriodBarOpen > originalConfig.bottomBuy.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.bottomBuy = (originalConfig.bottomBuy.toBigDecimal() + (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+                                    this.bottomStopLoss = originalConfig.bottomBuy
+
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+                                })
+                            } else if (smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal() && smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+                                })
+                            }
+                        }
+                    } else {
+                        this@Strategy.buyAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                        if (smallPeriodBarOpen > originalConfig.bottomBuy.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.bottomBuy = (originalConfig.bottomBuy.toBigDecimal() + (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+                                this.bottomStopLoss = originalConfig.bottomBuy
+
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+                            })
+                        } else if (smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal() && smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+                            })
+                        }
+                    }
+                }
+            }
+            /**
+             *     -                        |
+             * -----|----- -----------      |
+             *      |          -       -----|-----
+             * -----|----- -----|-----      |-
+             *       -           -         -
+             */
+            if ((bigPeriodBarOpen > bottomStopLossBig || (bigPeriodBarOpen < bottomStopLossSmall && bigPeriodBarHigh > toBottomStopLoss)) && smallPeriodBarOpen < bottomStopLossSmall) {
+                val order = this@Strategy.orderMap[instrument.name]
+                if (order == null) {
+                    this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                    if (smallPeriodBarOpen < originalConfig.bottomStopLoss.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.bottomBuy = originalConfig.bottomStopLoss
+                            this.bottomStopLoss = (originalConfig.bottomStopLoss.toBigDecimal() - (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+                        })
+                    } else if (smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal() && smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal()) {
+                        configManager.updateConfig(config.apply {
+                            this.bottomBuy = originalConfig.bottomBuy
+                            this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                            this.topStopLoss = originalConfig.topStopLoss
+                            this.topSell = originalConfig.topSell
+                        })
+                    }
+                } else {
+                    if (order.state == IOrder.State.FILLED) {
+                        if (order.isLong) {
+                            order.close()
+                            this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                            if (smallPeriodBarOpen < originalConfig.bottomStopLoss.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.bottomBuy = originalConfig.bottomStopLoss
+                                    this.bottomStopLoss = (originalConfig.bottomStopLoss.toBigDecimal() - (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+                                })
+                            } else if (smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal() && smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal()) {
+                                configManager.updateConfig(config.apply {
+                                    this.bottomBuy = originalConfig.bottomBuy
+                                    this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                                    this.topStopLoss = originalConfig.topStopLoss
+                                    this.topSell = originalConfig.topSell
+                                })
+                            }
+                        }
+                    } else {
+                        this@Strategy.sellAtMarket(config, instrument, this@Strategy.makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                        if (smallPeriodBarOpen < originalConfig.bottomStopLoss.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.bottomBuy = originalConfig.bottomStopLoss
+                                this.bottomStopLoss = (originalConfig.bottomStopLoss.toBigDecimal() - (originalConfig.bottomBuy.toBigDecimal() - originalConfig.bottomStopLoss.toBigDecimal())).toDouble()
+
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+                            })
+                        } else if (smallPeriodBarOpen < originalConfig.bottomBuy.toBigDecimal() && smallPeriodBarOpen > originalConfig.bottomStopLoss.toBigDecimal()) {
+                            configManager.updateConfig(config.apply {
+                                this.bottomBuy = originalConfig.bottomBuy
+                                this.bottomStopLoss = originalConfig.bottomStopLoss
+
+                                this.topStopLoss = originalConfig.topStopLoss
+                                this.topSell = originalConfig.topSell
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun makeTradeRecord(instrument: Instrument,
+                                bufferRandom: Int,
+                                bufferPoint: BigDecimal,
+                                bigPeriodBarOpen: BigDecimal,
+                                smallPeriodBarOpen: BigDecimal,
+                                toTopStopLoss: BigDecimal?,
+                                toTopSell: BigDecimal?,
+                                toBottomBuy: BigDecimal?,
+                                toBottomStopLoss: BigDecimal?): TradeRecord {
+        return TradeRecord().apply {
+            this.instrument = instrument.name
+            this.pipValue = instrument.pipValue.toBigDecimal()
+
+            this.bufferPoint = bufferPoint
+            this.bufferRandom = bufferRandom
+
+            this.bigPeriodBarOpen = bigPeriodBarOpen
+            this.smallPeriodBarOpen = smallPeriodBarOpen
+            this.topStopLoss = toTopStopLoss
+            this.topSell = toTopSell
+            this.bottomBuy = toBottomBuy
+            this.bottomStopLoss = toBottomStopLoss
+
+            this.createTime = Date()
+        }
+    }
+
+    private fun buyAtMarket(config: Config, instrument: Instrument, tradeRecord: TradeRecord) {
+        this.tradeAtMarket(config, instrument, IEngine.OrderCommand.BUY, tradeRecord)
+    }
+
+    private fun sellAtMarket(config: Config, instrument: Instrument, tradeRecord: TradeRecord) {
+        this.tradeAtMarket(config, instrument, IEngine.OrderCommand.SELL, tradeRecord)
+    }
+
+    private fun tradeAtMarket(config: Config, instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeRecord: TradeRecord) {
+        val tradeAmount = config.tradeAmount
+        val submitOrder = this.createOrder(instrument, orderCommand, tradeAmount)
+
+        submitOrder?.run {
+            tradeRecord.run {
+                this.code = submitOrder.label
+                this.orderCommand = orderCommand.name
+                this.tradeAmount = tradeAmount.times(1000000).toInt()
+                this.openPrice = submitOrder.openPrice.toBigDecimal()
+
+                this@Strategy.addTradeRecord(this)
+            }
+        }
+    }
+
+    private fun createOrder(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: Double): IOrder? {
+        val label = this.getLabel()
+        return try {
+            iEngine.submitOrder(label, instrument, orderCommand, tradeAmount).run {
+                this@Strategy.orderMap[instrument.name] = this
+                this
+            }
+        } catch (e: JFException) {
+            this.checkOrders(instruments)
+            this@Strategy.orderMap[instrument.name]
+        }
+    }
+
+    private fun addTradeRecord(tradeRecord: TradeRecord) {
+        emailManager.sendEmail(tradeRecord)
+    }
+}

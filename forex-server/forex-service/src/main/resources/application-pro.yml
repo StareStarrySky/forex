@@ -1,0 +1,16 @@
+spring:
+  config:
+    activate:
+      on-profile: pro
+  mail:
+    host: #{spring.mail.host}
+    port: #{spring.mail.port}
+    properties:
+      mail.smtp.ssl.enable: true
+    username: #{spring.mail.username}
+    password: #{spring.mail.password}
+    to: #{spring.mail.to}
+j-forex:
+  uri: #{j-forex.uri}
+  public-key: #{j-forex.public-key}
+  private-key: #{j-forex.private-key}

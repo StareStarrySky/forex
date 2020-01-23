@@ -1,0 +1,368 @@
+package xyz.starestarrysky.forex.jForexj.history
+
+import com.dukascopy.api.*
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Component
+import xyz.starestarrysky.forex.jForexj.model.config.Config
+import xyz.starestarrysky.forex.server.entity.TradeRecord
+import xyz.starestarrysky.forex.server.manager.ConfigManager
+import xyz.starestarrysky.forex.server.manager.TradeRecordManager
+
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.text.SimpleDateFormat
+import java.util.*
+
+@Component
+class FixedBorder : IStrategy {
+    @Autowired
+    private lateinit var configManager: ConfigManager
+    @Autowired
+    private lateinit var tradeRecordManager: TradeRecordManager
+
+    private lateinit var iContext: IContext
+    private lateinit var iEngine: IEngine
+
+    private val currentBigPeriod = Period.FOUR_HOURS
+    private val currentSmallPeriod = Period.FIVE_MINS
+//    private val currentInstruments = arrayOf(
+//        Instrument.GBPUSD, //44
+//        Instrument.USDJPY, //34
+//        Instrument.GBPJPY //44
+//        Instrument.USDCNH, //101
+//        Instrument.XAUUSD, //62
+//        Instrument.EURUSD, //39
+//        Instrument.EURGBP, //39
+//        Instrument.EURJPY, //39
+//        Instrument.HKDJPY, //14
+//        Instrument.TRYJPY, //19
+//        Instrument.ZARJPY, //8
+//        Instrument.LIGHTCMDUSD, //606
+//        Instrument.BTCUSD //642
+//    )
+//    private val bufferRandom = 5
+//    private val bufferRandom = 50
+//    private val tradeAmount = 0.001
+//    private val tradeAmount = 0.000001
+
+    private val labelPrefix = "ZXY_IVF"
+    private val orderMap = hashMapOf<String, IOrder?>()
+
+    private fun getConfig(): Config {
+        return configManager.getConfig()
+    }
+
+    override fun onStart(context: IContext) {
+        iContext = context
+        iEngine = context.engine
+
+        val instruments = arrayListOf(Instrument.GBPUSD, Instrument.USDJPY, Instrument.GBPJPY)
+        subscriptionInstrumentCheck(instruments)
+        checkOrders(instruments)
+    }
+
+    override fun onTick(instrument: Instrument, tick: ITick) {}
+
+    override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {
+        if (!getConfig().instruments.contains(instrument) || !(period == currentBigPeriod || period == currentSmallPeriod)) {
+            return
+        }
+        val currentBigPeriodBarHigh = getBar(instrument, currentBigPeriod).high.toBigDecimal()
+        val currentBigPeriodBarLow = getBar(instrument, currentBigPeriod).low.toBigDecimal()
+        val currentBigPeriodBarOpen = getBar(instrument, currentBigPeriod).open.toBigDecimal()
+        val currentSmallPeriodBarOpen = getBar(instrument, currentSmallPeriod).open.toBigDecimal()
+
+        detail(instrument, currentBigPeriodBarHigh, currentBigPeriodBarLow, currentBigPeriodBarOpen, currentSmallPeriodBarOpen)
+    }
+
+    override fun onMessage(message: IMessage) {}
+
+    override fun onAccount(account: IAccount) {}
+
+    override fun onStop() {
+        iContext.stop()
+    }
+
+    /**
+     * 在context里添加不存在的货币对
+     */
+    private fun subscriptionInstrumentCheck(instrumentList: List<Instrument>) {
+        try {
+            if (!iContext.subscribedInstruments.containsAll(instrumentList.toMutableSet())) {
+                val instruments: MutableSet<Instrument> = HashSet()
+                instruments.addAll(instrumentList)
+                iContext.setSubscribedInstruments(instruments, true)
+                Thread.sleep(100)
+            }
+        } catch (e: InterruptedException) {
+            e.printStackTrace()
+        }
+    }
+
+    /**
+     * 提取订单
+     */
+    private fun checkOrders(instruments: List<Instrument>) {
+        for (instrument in instruments) {
+            val orderList = arrayListOf<IOrder>()
+            try {
+                for (order in iEngine.orders) {
+                    if (order.label.startsWith(labelPrefix) && instrument == order.instrument) {
+                        orderList.add(order)
+                    }
+                }
+            } catch (e: JFException) {
+                throw e
+            }
+            when {
+                orderList.isEmpty() -> orderMap[instrument.name] = null
+                orderList.size == 1 -> orderMap[instrument.name] = orderList[0]
+                else -> throw JFException(JFException.Error.ORDERS_UNAVAILABLE)
+            }
+        }
+    }
+
+    /**
+     * 把某价格，按当前货币对波动一个点的小数位数+1，来进行>=5的四舍五入
+     */
+    private fun round(price: Double, instrument: Instrument): BigDecimal {
+        return price.toBigDecimal().setScale(instrument.pipScale + 1, RoundingMode.HALF_UP)
+    }
+
+    @Throws(JFException::class)
+    private fun getBar(instrument: Instrument, period: Period): IBar {
+        return iContext.history.getBar(instrument, period, OfferSide.BID, 0)
+    }
+
+    private fun getLabel(): String {
+        val sdf = SimpleDateFormat("yyyyMMdd_HHmmss")
+        val currentTime = sdf.format(System.currentTimeMillis())
+        return labelPrefix + currentTime + generateRandom() + generateRandom()
+    }
+
+    private fun generateRandom(): String {
+        val randomNumber = (Math.random() * 10000).toInt()
+        var answer = "" + randomNumber
+        if (answer.length > 3) {
+            answer = answer.substring(0, 4)
+        }
+        return answer
+    }
+
+    /**
+     * start
+     */
+    private fun detail(instrument: Instrument, bigPeriodBarHigh: BigDecimal, bigPeriodBarLow: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        // 通道顶部
+        topDetail(instrument, bigPeriodBarLow, bigPeriodBarOpen, smallPeriodBarOpen)
+        // 通道底部
+        bottomDetail(instrument, bigPeriodBarHigh, bigPeriodBarOpen, smallPeriodBarOpen)
+    }
+
+    @Throws(JFException::class)
+    private fun topDetail(instrument: Instrument, bigPeriodBarLow: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        val bufferRandom = getConfig().bufferRandom.toInt()
+        val bufferPoint = round(instrument.pipValue * (Math.random() * bufferRandom).toInt(), instrument)
+
+        val toTopStopLoss = getConfig().topStopLoss.toBigDecimal()
+        val toTopSell = getConfig().topSell.toBigDecimal()
+
+        val topStopLossBig = toTopStopLoss + bufferPoint
+        val topStopLossSmall = toTopStopLoss - bufferPoint
+        val topSellBig = toTopSell + bufferPoint
+        val topSellSmall = toTopSell - bufferPoint
+
+        if (topStopLossSmall > topSellBig) {
+            /**
+             *                        -
+             * -----------        -----|----- -----------
+             *      -        ||        |          -
+             * ----|------        -----|----- -----|-----
+             *    -                     -           -
+             */
+            if ((bigPeriodBarOpen < topSellSmall && smallPeriodBarOpen > topSellBig && smallPeriodBarOpen < topStopLossSmall)
+                || (bigPeriodBarOpen > topSellBig && smallPeriodBarOpen < topSellSmall)) {
+                orderMap[instrument.name].run {
+                    if (this == null) {
+                        sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                    } else {
+                        if (this.state == IOrder.State.FILLED) {
+                            if (this.isLong) {
+                                this.close()
+                                sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                            }
+                        } else {
+                            sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                        }
+                    }
+                }
+            }
+            /**
+             *      -           -           -          -
+             * ----|------ ----|------     |            |-
+             *     |          -        ----------- -----|-----
+             * ----|------ ----------- ----------- -----|-----
+             *    -                                     |
+             */
+            if ((bigPeriodBarOpen < topStopLossSmall || (bigPeriodBarOpen > topStopLossBig && bigPeriodBarLow < topSellSmall))
+                && smallPeriodBarOpen > topStopLossBig) {
+                if (smallPeriodBarOpen > topStopLossBig + topStopLossBig - topSellSmall) {
+                    orderMap[instrument.name]?.run {
+                        if (this.state == IOrder.State.FILLED) {
+                            if (!this.isLong) {
+                                this.close()
+                            }
+                        }
+                    }
+                } else {
+                    orderMap[instrument.name].run {
+                        if (this == null) {
+                            buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                        } else {
+                            if (this.state == IOrder.State.FILLED) {
+                                if (!this.isLong) {
+                                    this.close()
+                                    buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                                }
+                            } else {
+                                buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, toTopStopLoss, toTopSell, null, null))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Throws(JFException::class)
+    private fun bottomDetail(instrument: Instrument, bigPeriodBarHigh: BigDecimal, bigPeriodBarOpen: BigDecimal, smallPeriodBarOpen: BigDecimal) {
+        val bufferRandom = getConfig().bufferRandom.toInt()
+        val bufferPoint = round(instrument.pipValue * (Math.random() * bufferRandom).toInt(), instrument)
+
+        val toBottomBuy = getConfig().bottomBuy.toBigDecimal()
+        val toBottomStopLoss = getConfig().bottomStopLoss.toBigDecimal()
+
+        val bottomBuyBig = toBottomBuy + bufferPoint
+        val bottomBuySmall = toBottomBuy - bufferPoint
+        val bottomStopLossBig = toBottomStopLoss + bufferPoint
+        val bottomStopLossSmall = toBottomStopLoss - bufferPoint
+
+        if (bottomBuySmall > bottomStopLossBig) {
+            /**
+             *     -                    -           -
+             * -----|-----        -----|----- -----|-----
+             *       -       ||        |          -
+             * -----------        -----|----- -----------
+             *                        -
+             */
+            if ((bigPeriodBarOpen > bottomBuyBig && smallPeriodBarOpen < bottomBuySmall && smallPeriodBarOpen > bottomStopLossBig)
+                || (bigPeriodBarOpen < bottomBuySmall && smallPeriodBarOpen > bottomBuyBig)) {
+                orderMap[instrument.name].run {
+                    if (this == null) {
+                        buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                    } else {
+                        if (this.state == IOrder.State.FILLED) {
+                            if (!this.isLong) {
+                                this.close()
+                                buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                            }
+                        } else {
+                            buyAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                        }
+                    }
+                }
+            }
+            /**
+             *     -                                    |
+             * -----|----- ----------- ----------- -----|-----
+             *      |          -       ----------- -----|-----
+             * -----|----- -----|-----     |            |-
+             *       -           -          -          -
+             */
+            if ((bigPeriodBarOpen > bottomStopLossBig || (bigPeriodBarOpen < bottomStopLossSmall && bigPeriodBarHigh > bottomBuyBig))
+                && smallPeriodBarOpen < bottomStopLossSmall) {
+                if (smallPeriodBarOpen < bottomStopLossSmall + bottomStopLossSmall - bottomBuyBig) {
+                    orderMap[instrument.name]?.run {
+                        if (this.state == IOrder.State.FILLED) {
+                            if (this.isLong) {
+                                this.close()
+                            }
+                        }
+                    }
+                } else {
+                    orderMap[instrument.name].run {
+                        if (this == null) {
+                            sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom, bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                        } else {
+                            if (this.state == IOrder.State.FILLED) {
+                                if (this.isLong) {
+                                    this.close()
+                                    sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom , bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                                }
+                            } else {
+                                sellAtMarket(instrument, makeTradeRecord(instrument, bufferRandom , bufferPoint, bigPeriodBarOpen, smallPeriodBarOpen, null, null, toBottomBuy, toBottomStopLoss))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun makeTradeRecord(instrument: Instrument,
+                                bufferRandom: Int,
+                                bufferPoint: BigDecimal,
+                                bigPeriodBarOpen: BigDecimal,
+                                smallPeriodBarOpen: BigDecimal,
+                                toTopStopLoss: BigDecimal?,
+                                toTopSell: BigDecimal?,
+                                toBottomBuy: BigDecimal?,
+                                toBottomStopLoss: BigDecimal?): TradeRecord {
+        return TradeRecord().apply {
+            this.instrument = instrument.name
+            this.pipValue = instrument.pipValue.toBigDecimal()
+
+            this.bufferPoint = bufferPoint
+            this.bufferRandom = bufferRandom
+
+            this.bigPeriodBarOpen = bigPeriodBarOpen
+            this.smallPeriodBarOpen = smallPeriodBarOpen
+            this.topStopLoss = toTopStopLoss
+            this.topSell = toTopSell
+            this.bottomBuy = toBottomBuy
+            this.bottomStopLoss = toBottomStopLoss
+
+            this.createTime = Date()
+        }
+    }
+
+    @Throws(JFException::class)
+    private fun buyAtMarket(instrument: Instrument, tradeRecord: TradeRecord) {
+        tradeAtMarket(instrument, IEngine.OrderCommand.BUY, tradeRecord)
+    }
+
+    @Throws(JFException::class)
+    private fun sellAtMarket(instrument: Instrument, tradeRecord: TradeRecord) {
+        tradeAtMarket(instrument, IEngine.OrderCommand.SELL, tradeRecord)
+    }
+
+    @Throws(JFException::class)
+    private fun tradeAtMarket(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeRecord: TradeRecord) {
+        val label = getLabel()
+        val tradeAmount = getConfig().tradeAmount.toDouble()
+        val submitOrder = iEngine.submitOrder(label, instrument, orderCommand, tradeAmount)
+        orderMap[instrument.name] = submitOrder
+
+        tradeRecord.run {
+            this.code = label
+            this.orderCommand = orderCommand.name
+            this.tradeAmount = tradeAmount.times(1000000).toInt()
+
+            addTradeRecord(this)
+        }
+    }
+
+    private fun addTradeRecord(tradeRecord: TradeRecord) {
+        tradeRecordManager.add(tradeRecord)
+    }
+}

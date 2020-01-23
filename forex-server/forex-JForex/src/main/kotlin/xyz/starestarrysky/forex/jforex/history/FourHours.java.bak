@@ -1,0 +1,337 @@
+package xyz.starestarrysky.forex.jForexj.history;
+
+import com.dukascopy.api.*;
+
+import java.io.*;
+import java.math.BigDecimal;
+import java.net.*;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+/**
+ * @param "ThirtyMins"
+ * @author zty
+ * @version 5.6.0.1-beta
+ * @date 2020/02/18
+ * @apiNote socket server exception.
+ */
+public class FourHours implements IStrategy {
+
+    private IContext context;
+    private IEngine engine;
+
+    private Instrument[] instruments = {
+            Instrument.GBPUSD,/*44-1.5-0.0001*/
+            Instrument.USDJPY,/*34-0.6-0.01*/
+//            Instrument.USDCNH,/*101-4.8-0.0001*/
+            Instrument.GBPJPY,/*44-2.7-0.01*/
+//            Instrument.XAUUSD,/*66-30.7-0.01*/
+//            Instrument.LIGHTCMDUSD,/*606-5.88-0.01*/
+//            Instrument.BTCUSD,/*642-119.5-1.0*/
+//            Instrument.EURUSD,/*39-0.6-0.0001*/
+//            Instrument.EURGBP,/*39-1.5-0.0001*/
+//            Instrument.EURJPY,/*39-1.1-0.01*/
+//            Instrument.HKDJPY,/*14-17.7-0.0001*/
+//            Instrument.TRYJPY,/*20-2.4-0.01*/
+//            Instrument.ZARJPY,/*8-1.4-0.01*/
+    };
+
+    private int bufferRandom = 5;//not XAUUSD
+//    private int bufferRandom = 50;//XAUUSD
+    private double tradeAmount = 0.001;//1000
+//    private double tradeAmount = 0.000001;//1
+
+    private double line120 = -1;
+    private double line160 = -1;
+
+    @Override
+    public void onStart(IContext context) throws JFException {
+        this.context = context;
+        this.engine = context.getEngine();
+
+        subscriptionInstrumentCheck(instruments);
+    }
+
+    @Override
+    public void onTick(Instrument instrument, ITick tick) throws JFException {
+    }
+
+    @Override
+    public void onBar(Instrument instrument, Period period, IBar askBar, IBar bidBar) throws JFException {
+        for (Instrument currentInstrument : instruments) {
+            if (instrument.equals(currentInstrument) && (period.equals(Period.FOUR_HOURS) || period.equals(Period.THIRTY_MINS))) {
+                Runnable runnable = () -> {
+                    sma(currentInstrument, new Object[]{120});
+                    sma(currentInstrument, new Object[]{160});
+
+                    if (this.line120 != -1 && this.line160 != -1) {
+                        double roundLine120 = round(line120, currentInstrument);
+                        double roundLine160 = round(line160, currentInstrument);
+
+                        try {
+                            double currentSmallPeriodBarOpen = getSmallPeriodBarBar(currentInstrument).getOpen();
+                            double currentBigPeriodBarOpen = getBigPeriodBarBar(currentInstrument).getOpen();
+
+                            openSituation(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen);
+                            closeSituation(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen);
+                        } catch (JFException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+                new Thread(runnable).start();
+            }
+        }
+    }
+
+    @Override
+    public void onMessage(IMessage message) throws JFException {
+    }
+
+    @Override
+    public void onAccount(IAccount account) throws JFException {
+    }
+
+    @Override
+    public void onStop() throws JFException {
+    }
+
+    /**
+     * 在context里添加不存在的货币对
+     */
+    private void subscriptionInstrumentCheck(Instrument[] instruments) {
+//        if (!context.getSubscribedInstruments().contains(instrument)) {
+        Set<Instrument> instrumentsSet = new HashSet<Instrument>(Arrays.asList(instruments));
+        context.setSubscribedInstruments(instrumentsSet, true);
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 把某价格，按当前货币对波动一个点的小数位数+1，来进行>=5的四舍五入
+     */
+    private double round(double price, Instrument instrument) {
+        BigDecimal big = new BigDecimal("" + price);
+        big = big.setScale(instrument.getPipScale() + 1, BigDecimal.ROUND_HALF_UP);
+        return big.doubleValue();
+    }
+
+    /**
+     * getSmallPeriodBarBar
+     */
+    private IBar getSmallPeriodBarBar(Instrument instrument) throws JFException {
+        return context.getHistory().getBar(instrument, Period.THIRTY_MINS, OfferSide.BID, 0);
+    }
+
+    /**
+     * getBigPeriodBarBar
+     */
+    private IBar getBigPeriodBarBar(Instrument instrument) throws JFException {
+        return context.getHistory().getBar(instrument, Period.FOUR_HOURS, OfferSide.BID, 0);
+    }
+
+    /**
+     * 设置订单编号
+     */
+    protected String getLabel() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        String currentTime = sdf.format(System.currentTimeMillis());
+        return "IVF" + currentTime + generateRandom() + generateRandom();
+    }
+
+    private static String generateRandom() {
+        int randomNumber = (int) (Math.random() * 10000);
+        String answer = "" + randomNumber;
+        if (answer.length() > 3) {
+            answer = answer.substring(0, 4);
+        }
+        return answer;
+    }
+
+    /**
+     * block
+     */
+    private void sma(Instrument currentInstrument, Object[] params) {
+        try {
+            long time = context.getHistory().getBar(currentInstrument, Period.FOUR_HOURS, OfferSide.BID, 0).getTime();
+            Object[] indicatorResult = context.getIndicators().calculateIndicator(currentInstrument, Period.FOUR_HOURS,
+                    new OfferSide[]{OfferSide.BID}, "SMA", new IIndicators.AppliedPrice[]{IIndicators.AppliedPrice.CLOSE},
+                    params, Filter.WEEKENDS, 1, time, 0);
+            if (params[0].equals(120)) {
+                this.line120 = (((double[]) indicatorResult[0])[0]);
+            } else {
+                this.line160 = (((double[]) indicatorResult[0])[0]);
+            }
+            //here is next block
+        } catch (JFException e) {
+            e.printStackTrace();
+            if (params[0].equals(120)) {
+                this.line120 = Double.NaN;
+            } else {
+                this.line160 = Double.NaN;
+            }
+        }
+    }
+
+    private void openSituation(Instrument currentInstrument, double roundLine120, double roundLine160, double currentSmallPeriodBarOpen, double currentBigPeriodBarOpen) throws JFException {
+        for (IOrder order : engine.getOrders()) {
+            if (currentInstrument.equals(order.getInstrument())) {
+                return;
+            }
+        }
+
+        double bufferPoint = round(currentInstrument.getPipValue() * (int) (Math.random() * bufferRandom), currentInstrument);
+
+        if (roundLine120 < roundLine160) {
+            if (currentBigPeriodBarOpen < roundLine160 - bufferPoint
+                    && currentSmallPeriodBarOpen > roundLine160 + bufferPoint) {
+                buyAtMarket(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+            }
+            if (currentBigPeriodBarOpen > roundLine120 + bufferPoint
+                    && currentSmallPeriodBarOpen < roundLine120 - bufferPoint) {
+                sellAtMarket(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+            }
+        } else {
+            if (currentBigPeriodBarOpen < roundLine120 - bufferPoint
+                    && currentSmallPeriodBarOpen > roundLine120 + bufferPoint) {
+                buyAtMarket(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+            }
+            if (currentBigPeriodBarOpen > roundLine160 + bufferPoint
+                    && currentSmallPeriodBarOpen < roundLine160 - bufferPoint) {
+                sellAtMarket(currentInstrument, roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+            }
+        }
+    }
+
+    private void buyAtMarket(Instrument currentInstrument, double roundLine120, double roundLine160, double currentSmallPeriodBarOpen, double currentBigPeriodBarOpen, double bufferPoint, int bufferRandom) throws JFException {
+        String label = getLabel();
+        IEngine.OrderCommand orderCommand = IEngine.OrderCommand.BUY;
+        engine.submitOrder(label, currentInstrument, orderCommand, tradeAmount);
+        sendJson(label, currentInstrument.name(), orderCommand.name(), String.valueOf(currentInstrument.getPipValue()), roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+    }
+
+    private void sellAtMarket(Instrument currentInstrument, double roundLine120, double roundLine160, double currentSmallPeriodBarOpen, double currentBigPeriodBarOpen, double bufferPoint, int bufferRandom) throws JFException {
+        String label = getLabel();
+        IEngine.OrderCommand orderCommand = IEngine.OrderCommand.SELL;
+        engine.submitOrder(label, currentInstrument, orderCommand, tradeAmount);
+        sendJson(label, currentInstrument.name(), orderCommand.name(), String.valueOf(currentInstrument.getPipValue()), roundLine120, roundLine160, currentSmallPeriodBarOpen, currentBigPeriodBarOpen, bufferPoint, bufferRandom);
+    }
+
+    private void closeSituation(Instrument currentInstrument, double roundLine120, double roundLine160, double currentSmallPeriodBarOpen) throws JFException {
+        for (IOrder order : engine.getOrders()) {
+            if (currentInstrument.equals(order.getInstrument())) {
+                if (order.getState() == IOrder.State.FILLED) {
+                    double bufferPoint = round(currentInstrument.getPipValue() * (int) (Math.random() * bufferRandom), currentInstrument);
+                    if (order.getOrderCommand().isLong()) {
+                        if (roundLine120 < roundLine160 && currentSmallPeriodBarOpen < roundLine160 - bufferPoint) {
+                            order.close();
+                        }
+                        if (roundLine120 > roundLine160 && currentSmallPeriodBarOpen < roundLine120 - bufferPoint) {
+                            order.close();
+                        }
+                    } else {
+                        if (roundLine120 < roundLine160 && currentSmallPeriodBarOpen > roundLine120 + bufferPoint) {
+                            order.close();
+                        }
+                        if (roundLine120 > roundLine160 && currentSmallPeriodBarOpen > roundLine160 + bufferPoint) {
+                            order.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void sendJson(String code, String instrument, String orderCommand, String pipValue, double roundLine120, double roundLine160, double smallPeriodBarOpen, double bigPeriodBarOpen, double bufferPoint, int bufferRandom) {
+        Map<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("code", code);
+        jsonMap.put("instrument", instrument);
+        jsonMap.put("orderCommand", orderCommand);
+        jsonMap.put("pipValue", pipValue);
+        jsonMap.put("roundLine120", roundLine120);
+        jsonMap.put("roundLine160", roundLine160);
+        jsonMap.put("smallPeriodBarOpen", smallPeriodBarOpen);
+        jsonMap.put("bigPeriodBarOpen", bigPeriodBarOpen);
+        jsonMap.put("bufferPoint", bufferPoint);
+        jsonMap.put("bufferRandom", bufferRandom);
+
+        StringBuilder jsonSb = new StringBuilder();
+        for (String key : jsonMap.keySet()) {
+            jsonSb.append("\"")
+                    .append(key)
+                    .append("\"")
+                    .append(":")
+                    .append(jsonMap.get(key))
+                    .append(",");
+        }
+        String jsonCon = "{" + jsonSb.substring(0, jsonSb.length() -1 ) + "}";
+
+//        doPost("http://95.179.194.124:8080/forex/trade-record", jsonCon);
+        doSocket(jsonCon);
+    }
+
+    private void doPost(String URL, String jsonCon){
+        OutputStreamWriter out = null;
+        BufferedReader in = null;
+        StringBuilder result = new StringBuilder();
+        HttpURLConnection conn = null;
+        try{
+            URL url = new URL(URL);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            //发送POST请求必须设置为true
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            //设置连接超时时间和读取超时时间
+            conn.setConnectTimeout(30000);
+            conn.setReadTimeout(10000);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Accept", "application/json");
+            //获取输出流
+            out = new OutputStreamWriter(conn.getOutputStream());
+            out.write(jsonCon);
+            out.flush();
+            out.close();
+            //取得输入流，并使用Reader读取
+            if (200 == conn.getResponseCode()){
+                in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                String line;
+                while ((line = in.readLine()) != null){
+                    result.append(line);
+                    System.out.println(line);
+                }
+            }else{
+                System.out.println("ResponseCode is an error code:" + conn.getResponseCode());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            try{
+                if(out != null){
+                    out.close();
+                }
+                if(in != null){
+                    in.close();
+                }
+            }catch (IOException ioe){
+                ioe.printStackTrace();
+            }
+        }
+//        return result.toString();
+    }
+
+    private void doSocket(String jsonCon) {
+        try {
+            InetAddress host = InetAddress.getByName("95.179.194.124");
+            Socket socket = new Socket(host.getHostName(), 7000);
+            ObjectOutputStream outputStream = new ObjectOutputStream(socket.getOutputStream());
+            outputStream.writeObject(jsonCon);
+            outputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}

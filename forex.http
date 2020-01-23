@@ -1,0 +1,37 @@
+# For a quick start check out our HTTP Requests collection (Tools|HTTP Client|Open HTTP Requests Collection).
+#
+# Following HTTP Request Live Templates are available:
+# * 'gtrp' and 'gtr' create a GET request with or without query parameters;
+# * 'ptr' and 'ptrp' create a POST request with a simple or parameter-like body;
+# * 'mptr' and 'fptr' create a POST request to submit a form with a text or file field (multipart/form-data);
+
+//@no-log
+//@no-cookie-jar
+GET http://localhost:8080/forex/configSetting
+
+###
+
+//@no-log
+//@no-cookie-jar
+PUT http://localhost:8080/forex/configSetting
+Content-Type: application/json
+
+[
+    {
+        "canTrade": true,
+        "fuse": 4,
+        "bufferRandom": 0,
+        "instrument": {
+            "name": "GBPJPY"
+        },
+        "tradeAmount": 1,
+        "passageways": [
+            {
+                "top": 156.2,
+                "bottom": 156
+            }
+        ]
+    }
+]
+
+###

@@ -1,0 +1,35 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /forex
+spring:
+  application:
+    name: forex
+  #  datasource:
+#    url: jdbc:mysql://mysql:3306/forex?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    username: root
+#    password:
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.MySQL8Dialect
+#    open-in-view: true
+#    show-sql: false
+#  data:
+#    web:
+#      pageable:
+#        prefix: p_
+#      sort:
+#        sort-parameter: s_sort
+#  flyway:
+#    baseline-on-migrate: true
+#    baseline-version: 0
+#    ignore-missing-migrations: true
+#    validate-on-migrate: false
+#    clean-on-validation-error: true
+logging:
+  level:
+    org.springframework.web: trace

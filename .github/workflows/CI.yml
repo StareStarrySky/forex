@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  forex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Version
+        id: get-version
+        run: echo ::set-output name=PROJECT_VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - uses: actions/checkout@v2
+
+      - name: Build And Push
+        env:
+          DOCKER_URL: ${{ secrets.DOCKER_URL }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
+          PROJECT_VERSION: ${{ steps.get-version.outputs.PROJECT_VERSION }}
+        run: |
+          chmod u+x ./gradlew
+          ./gradlew :forex-server:forex-service:pushImage -x test
+          ./gradlew :forex-server:forex-service:removeImage
+        shell: bash

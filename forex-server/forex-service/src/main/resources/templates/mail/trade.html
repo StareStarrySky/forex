@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${order.label}"></title>
+</head>
+<body>
+    <table>
+        <tr>
+            <td>货币对</td>
+            <td th:text="${order.instrument.name}"></td>
+        </tr>
+        <tr>
+            <td>方向</td>
+            <td th:text="${order.orderCommand.name}"></td>
+        </tr>
+        <tr>
+            <td>成交价</td>
+            <td th:text="${order.openPrice}"></td>
+        </tr>
+    </table>
+</body>
+</html>

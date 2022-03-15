@@ -9,20 +9,20 @@ import xyz.starestarrysky.forex.server.forex.model.ConfigSettingModel
 import xyz.starestarrysky.forex.server.manager.ConfigSettingManager
 
 @RestController
-@RequestMapping("/configSetting")
+@RequestMapping("/config-setting")
 class ConfigSettingRest : BaseRest() {
     @Autowired
     private lateinit var configSettingManager: ConfigSettingManager
 
     @GetMapping
     @JsonView(ConfigSettingModel.ModelView::class)
-    fun getConfigSetting(): List<ConfigSetting> {
+    fun getConfigSetting(): MutableList<ConfigSetting> {
         return configSettingManager.getConfigSettings()
     }
 
     @PutMapping
     @JsonView(ConfigSettingModel.ModelView::class)
-    fun updateConfigSetting(@RequestBody configSettings: List<ConfigSettingModel>): List<ConfigSetting> {
+    fun updateConfigSetting(@RequestBody configSettings: List<ConfigSettingModel>): MutableList<ConfigSetting> {
         return configSettingManager.putConfigSettings(configSettings)
     }
 }

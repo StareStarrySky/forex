@@ -31,7 +31,7 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
 
     override var bigPeriod: Period = Period.FOUR_HOURS
 
-    override var smallPeriod: Period = Period.THIRTY_MINS
+    override var smallPeriod: Period = Period.FIVE_MINS
 
     @JsonView(ModelView::class)
     @JsonSerialize(using = InstrumentSerializer::class)
@@ -45,4 +45,7 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
     @JsonSerialize(using = PassagewayListSerializer::class)
     @JsonDeserialize(using = PassagewayListDeserializer::class)
     override var passageways: List<Passageway> = arrayListOf()
+
+    @JsonView(ModelView::class)
+    override var curPassageway: Passageway = Passageway()
 }

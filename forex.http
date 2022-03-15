@@ -20,11 +20,11 @@ Content-Type: application/json
     {
         "canTrade": true,
         "fuse": 4,
-        "bufferRandom": 0,
+        "bufferRandom": 5,
         "instrument": {
             "name": "GBPJPY"
         },
-        "tradeAmount": 1,
+        "tradeAmount": 0.001,
         "passageways": [
             {
                 "top": 156.2,

@@ -27,7 +27,7 @@ open class ConfigSetting {
 
     open lateinit var passageways: List<Passageway>
 
-    lateinit var curPassageway: Passageway
+    open lateinit var curPassageway: Passageway
 
     lateinit var bigBIDBarHigh: BigDecimal
 
@@ -46,8 +46,8 @@ open class ConfigSetting {
     lateinit var smallASKBarOpen: BigDecimal
 
     class Passageway {
-        lateinit var top: BigDecimal
+        var top: BigDecimal = BigDecimal.ZERO
 
-        lateinit var bottom: BigDecimal
+        var bottom: BigDecimal = BigDecimal.ZERO
     }
 }

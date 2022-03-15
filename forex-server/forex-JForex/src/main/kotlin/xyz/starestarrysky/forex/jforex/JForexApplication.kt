@@ -26,18 +26,18 @@ class JForexApplication(
 
         client.setSystemListener(object : ISystemListener {
             override fun onStart(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}Strategy started: $processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境已启动: $processId")
             }
 
             override fun onStop(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}Strategy stopped: $processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境已停止: $processId")
                 if (client.startedStrategies.isEmpty()) {
                     exitProcess(0)
                 }
             }
 
             override fun onConnect() {
-                LOGGER.info("${LOGGER_LINE_PREFIX}Connected")
+                LOGGER.info("${LOGGER_LINE_PREFIX}服务器连接成功")
             }
 
             override fun onDisconnect() {
@@ -66,7 +66,7 @@ class JForexApplication(
             }
         })
 
-        LOGGER.info("${LOGGER_LINE_PREFIX}Connecting...")
+        LOGGER.info("${LOGGER_LINE_PREFIX}服务器连接中")
         client.connect(jForexInfo.uri, jForexInfo.publicKey, jForexInfo.privateKey)
         var i = 10
         while (i > 0 && !client.isConnected) {
@@ -74,14 +74,14 @@ class JForexApplication(
             i--
         }
         if (!client.isConnected) {
-            LOGGER.error("${LOGGER_LINE_PREFIX}Failed to connect Dukascopy servers")
+            LOGGER.error("${LOGGER_LINE_PREFIX}服务器连接失败")
             exitProcess(1)
         }
 
-        LOGGER.info("${LOGGER_LINE_PREFIX}Subscribing instruments...")
+        LOGGER.info("${LOGGER_LINE_PREFIX}货币对预置中")
         client.subscribedInstruments = hashSetOf(Instrument.GBPUSD, Instrument.USDJPY, Instrument.GBPJPY)
 
-        LOGGER.info("${LOGGER_LINE_PREFIX}Starting strategy")
+        LOGGER.info("${LOGGER_LINE_PREFIX}开始启动策略")
         client.startStrategy(strategy)
     }
 }

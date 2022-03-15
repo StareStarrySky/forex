@@ -8,7 +8,7 @@ import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 
 @JsonComponent
 class PassagewayListSerializer : JsonSerializer<List<ConfigSetting.Passageway>>() {
-    override fun serialize(p0: List<ConfigSetting.Passageway>?, p1: JsonGenerator?, p2: SerializerProvider?) {
-        p1?.writeObject(p0)
+    override fun serialize(value: List<ConfigSetting.Passageway>?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+        gen?.writeObject(value)
     }
 }

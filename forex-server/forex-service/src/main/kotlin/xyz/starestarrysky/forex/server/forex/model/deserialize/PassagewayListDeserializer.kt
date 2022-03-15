@@ -11,8 +11,8 @@ import java.math.BigDecimal
 
 @JsonComponent
 class PassagewayListDeserializer : JsonDeserializer<List<ConfigSetting.Passageway>>() {
-    override fun deserialize(p0: JsonParser?, p1: DeserializationContext?): List<ConfigSetting.Passageway>? {
-        return (p0?.codec?.readTree<TreeNode>(p0) as ArrayNode).map {
+    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): List<ConfigSetting.Passageway>? {
+        return (p?.codec?.readTree<TreeNode>(p) as ArrayNode).map {
             ConfigSetting.Passageway().apply {
                 this.top = BigDecimal(it["top"].asText())
                 this.bottom = BigDecimal(it["bottom"].asText())

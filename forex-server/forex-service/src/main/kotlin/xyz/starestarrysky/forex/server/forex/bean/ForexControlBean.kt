@@ -14,7 +14,7 @@ import xyz.starestarrysky.forex.jforex.strategy.NeverEndingSpiralIng
 @Configuration
 class ForexControlBean {
     @Bean
-    fun jForexControl(configSettings: List<ConfigSetting>, openOrder: OpenOrder, jForexEvent: JForexEvent): IStrategy {
+    fun jForexControl(configSettings: MutableList<ConfigSetting>, openOrder: OpenOrder, jForexEvent: JForexEvent): IStrategy {
         return NeverEndingSpiral(JForexPlatform(), openOrder, configSettings, NeverEndingSpiralIng(), jForexEvent)
     }
 
@@ -24,7 +24,7 @@ class ForexControlBean {
     }
 
     @Bean
-    fun configSettings(): List<ConfigSetting> {
+    fun configSettings(): MutableList<ConfigSetting> {
         return arrayListOf()
     }
 }

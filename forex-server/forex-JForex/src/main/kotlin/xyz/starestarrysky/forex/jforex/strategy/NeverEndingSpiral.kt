@@ -26,19 +26,19 @@ import xyz.starestarrysky.forex.jforex.event.JForexEvent
 class NeverEndingSpiral(
     private val jForexPlatform: JForexPlatform,
     private val openOrder: OpenOrder,
-    private val configSettings: List<ConfigSetting>,
+    private val configSettings: MutableList<ConfigSetting>,
     private val neverEndingSpiralEd: NeverEndingSpiralEd,
     private val jForexEvent: JForexEvent?
 ) : IStrategy, ForexControl {
     companion object {
         private const val LOGGER_LINE_PREFIX = "策略日志："
-        private const val LOGGER_PREFIX = "【策略日志开始】"
-        private const val LOGGER_SUFFIX = "【策略日志结束】"
+        private const val LOGGER_PREFIX = ">>>策略日志开始"
+        private const val LOGGER_SUFFIX = "<<<策略日志结束"
         private val LOGGER = LoggerFactory.getLogger(NeverEndingSpiral::class.java)
     }
 
     override fun onStart(context: IContext) {
-        LOGGER.warn("${LOGGER_LINE_PREFIX}策略启动")
+        LOGGER.info("${LOGGER_LINE_PREFIX}策略启动中")
 
         jForexPlatform.iContext = context
         jForexPlatform.iEngine = context.engine
@@ -51,16 +51,16 @@ class NeverEndingSpiral(
     }
 
     override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {
-        for (configSetting in configSettings) {
-            if (instrument != configSetting.instrument || period != configSetting.smallPeriod) {
-                continue
+        configSettings.forEach {
+            if (instrument == it.instrument && (period == it.smallPeriod || period == it.bigPeriod)) {
+                neverEndingSpiralEd.onBar(it)
             }
-            neverEndingSpiralEd.onBar(configSetting)
         }
     }
 
     override fun onMessage(message: IMessage) {
         if (message.type != IMessage.Type.INSTRUMENT_STATUS) {
+            neverEndingSpiralEd.update()
             LOGGER.info(LOGGER_PREFIX)
             LOGGER.info("消息")
             LOGGER.info("类型 - ${message.type.name}")
@@ -78,7 +78,7 @@ class NeverEndingSpiral(
     }
 
     override fun onStop() {
-        LOGGER.warn("${LOGGER_LINE_PREFIX}策略停止")
+        LOGGER.info("${LOGGER_LINE_PREFIX}策略停止中")
 
         jForexPlatform.iContext.stop()
     }

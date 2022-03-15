@@ -10,7 +10,7 @@ import org.springframework.boot.jackson.JsonComponent
 
 @JsonComponent
 class InstrumentDeserializer : JsonDeserializer<Instrument>() {
-    override fun deserialize(p0: JsonParser?, p1: DeserializationContext?): Instrument? {
-        return Instrument.valueOf((p0?.codec?.readTree<TreeNode>(p0)?.get("name") as TextNode).asText())
+    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): Instrument? {
+        return Instrument.valueOf((p?.codec?.readTree<TreeNode>(p)?.get("name") as TextNode).asText())
     }
 }

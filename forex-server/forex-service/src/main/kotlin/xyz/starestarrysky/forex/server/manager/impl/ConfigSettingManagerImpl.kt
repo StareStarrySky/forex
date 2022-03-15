@@ -12,16 +12,17 @@ import xyz.starestarrysky.forex.server.manager.ConfigSettingManager
 @CacheConfig(cacheNames = ["configSettingManager"])
 class ConfigSettingManagerImpl : ConfigSettingManager {
     @Autowired
-    private lateinit var configSettings: List<ConfigSetting>
+    private lateinit var configSettings: MutableList<ConfigSetting>
 
     @Cacheable(key = "'configSettings'")
-    override fun getConfigSettings(): List<ConfigSetting> {
+    override fun getConfigSettings(): MutableList<ConfigSetting> {
         return configSettings
     }
 
     @CachePut(key = "'configSettings'")
-    override fun putConfigSettings(configSettings: List<ConfigSetting>): List<ConfigSetting> {
-        this.configSettings = configSettings
-        return this.configSettings
+    override fun putConfigSettings(configSettingList: List<ConfigSetting>): MutableList<ConfigSetting> {
+        configSettings.clear()
+        configSettings.addAll(configSettingList)
+        return configSettings
     }
 }

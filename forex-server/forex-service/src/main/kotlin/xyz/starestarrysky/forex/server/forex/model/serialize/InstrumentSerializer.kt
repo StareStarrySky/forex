@@ -8,11 +8,11 @@ import org.springframework.boot.jackson.JsonComponent
 
 @JsonComponent
 class InstrumentSerializer : JsonSerializer<Instrument>() {
-    override fun serialize(p0: Instrument?, p1: JsonGenerator?, p2: SerializerProvider?) {
-        p1?.run {
-            this.writeStartObject(p0, 2)
-            this.writeObjectField("name", p0?.name())
-            this.writeObjectField("stringValue", p0?.name)
+    override fun serialize(value: Instrument?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+        gen?.run {
+            this.writeStartObject(value, 2)
+            this.writeObjectField("name", value?.name())
+            this.writeObjectField("stringValue", value?.name)
             this.writeEndObject()
         }
     }

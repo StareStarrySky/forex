@@ -1,6 +1,5 @@
 package xyz.starestarrysky.forex.server.runner
 
-import org.apache.commons.lang3.StringUtils
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -29,13 +28,11 @@ class JForexApplicationRunner : ApplicationRunner {
     private lateinit var jForexApplication: JForexApplication
 
     override fun run(args: ApplicationArguments?) {
-        LOGGER.info("Running JForexApplicationRunner at ${env}...")
-        if (StringUtils.equals(env, "pro")) {
-            jForexApplication.run()
-        } else if (StringUtils.equals(env, "test")) {
-            runTest()
-        } else {
-            LOGGER.info("Nothing is running.")
+        LOGGER.info("开始在${env}环境运行JForexApplicationRunner")
+        when (env) {
+            "pro" -> jForexApplication.run()
+            "test" -> runTest()
+            else -> LOGGER.info("没有JForexApplicationRunner在运行")
         }
     }
 

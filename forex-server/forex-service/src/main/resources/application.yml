@@ -32,4 +32,4 @@ spring:
 #    clean-on-validation-error: true
 logging:
   level:
-    org.springframework.web: trace
+    web: trace

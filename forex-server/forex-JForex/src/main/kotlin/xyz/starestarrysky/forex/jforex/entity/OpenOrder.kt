@@ -2,8 +2,8 @@ package xyz.starestarrysky.forex.jforex.entity
 
 import com.dukascopy.api.IOrder
 
-class OpenOrder {
-    lateinit var order: Map<String, IOrder>
+open class OpenOrder {
+    open lateinit var order: Map<String, IOrder>
 
-    lateinit var orders: Map<String, List<IOrder>>
+    open lateinit var orders: List<IOrder>
 }

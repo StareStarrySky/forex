@@ -60,7 +60,9 @@ class NeverEndingSpiral(
 
     override fun onMessage(message: IMessage) {
         if (message.type != IMessage.Type.INSTRUMENT_STATUS) {
-            neverEndingSpiralEd.update()
+            if (message.type == IMessage.Type.ORDER_CLOSE_OK || message.type == IMessage.Type.ORDER_FILL_OK) {
+                neverEndingSpiralEd.update()
+            }
             LOGGER.info(LOGGER_PREFIX)
             LOGGER.info("消息")
             LOGGER.info("类型 - ${message.type.name}")

@@ -7,9 +7,8 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 import xyz.starestarrysky.forex.server.forex.model.deserialize.InstrumentDeserializer
-import xyz.starestarrysky.forex.server.forex.model.deserialize.PassagewayListDeserializer
 import xyz.starestarrysky.forex.server.forex.model.serialize.InstrumentSerializer
-import xyz.starestarrysky.forex.server.forex.model.serialize.PassagewayListSerializer
+import xyz.starestarrysky.forex.server.forex.model.serialize.ObjectSerializer
 import java.io.Serializable
 import java.math.BigDecimal
 
@@ -42,10 +41,10 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
     override var tradeAmount: BigDecimal = BigDecimal.ONE
 
     @JsonView(ModelView::class)
-    @JsonSerialize(using = PassagewayListSerializer::class)
-    @JsonDeserialize(using = PassagewayListDeserializer::class)
+    @JsonSerialize(using = ObjectSerializer::class)
     override var passageways: List<Passageway> = arrayListOf()
 
     @JsonView(ModelView::class)
+    @JsonSerialize(using = ObjectSerializer::class)
     override var curPassageway: Passageway = Passageway()
 }

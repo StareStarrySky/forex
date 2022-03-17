@@ -7,8 +7,8 @@ import org.springframework.boot.jackson.JsonComponent
 import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 
 @JsonComponent
-class PassagewayListSerializer : JsonSerializer<List<ConfigSetting.Passageway>>() {
-    override fun serialize(value: List<ConfigSetting.Passageway>?, gen: JsonGenerator?, serializers: SerializerProvider?) {
+class ObjectSerializer : JsonSerializer<Any>() {
+    override fun serialize(value: Any?, gen: JsonGenerator?, serializers: SerializerProvider?) {
         gen?.writeObject(value)
     }
 }

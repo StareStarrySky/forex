@@ -7,13 +7,13 @@
 
 //@no-log
 //@no-cookie-jar
-GET http://localhost:8080/forex/configSetting
+GET http://localhost:8080/forex/config-setting
 
 ###
 
 //@no-log
 //@no-cookie-jar
-PUT http://localhost:8080/forex/configSetting
+PUT http://localhost:8080/forex/config-setting
 Content-Type: application/json
 
 [
@@ -33,5 +33,11 @@ Content-Type: application/json
         ]
     }
 ]
+
+###
+
+//@no-log
+//@no-cookie-jar
+GET http://localhost:8080/forex/open-order
 
 ###

@@ -9,7 +9,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
 
-class NeverEndingSpiralIng : NeverEndingSpiralEd {
+open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     override lateinit var jForexPlatform: JForexPlatform
 
     override lateinit var openOrder: OpenOrder
@@ -48,7 +48,6 @@ class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
         if (configSetting.curPassageway.top != closestPassageway.bottom && configSetting.curPassageway.bottom != closestPassageway.top) {
             configSetting.curPassageway = closestPassageway
-            configSetting.canTrade = true
             configSetting.curFuse = 0
         }
     }
@@ -80,17 +79,19 @@ class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
             if (order == null || order.state != IOrder.State.FILLED) {
                 sellAtMarket(configSetting)
-                configSetting.curPassageway = ConfigSetting.Passageway().apply {
+                configSetting.curPassageway.run {
+                    val tmp = this.top
                     this.top = this.bottom
-                    this.bottom = (this.bottom - (this.top - this.bottom))
+                    this.bottom = (this.bottom - (tmp - this.bottom))
                 }
             } else {
                 if (order.isLong) {
                     order.close()
                     sellAtMarket(configSetting)
-                    configSetting.curPassageway = ConfigSetting.Passageway().apply {
+                    configSetting.curPassageway.run {
+                        val tmp = this.top
                         this.top = this.bottom
-                        this.bottom = (this.bottom - (this.top - this.bottom))
+                        this.bottom = (this.bottom - (tmp - this.bottom))
                     }
                 }
             }
@@ -108,17 +109,19 @@ class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
             if (order == null || order.state != IOrder.State.FILLED) {
                 buyAtMarket(configSetting)
-                configSetting.curPassageway = ConfigSetting.Passageway().apply {
+                configSetting.curPassageway.run {
+                    val tmp = this.bottom
                     this.bottom = this.top
-                    this.top = (this.top + (this.top - this.bottom))
+                    this.top = (this.top + (this.top - tmp))
                 }
             } else {
                 if (!order.isLong) {
                     order.close()
                     buyAtMarket(configSetting)
-                    configSetting.curPassageway = ConfigSetting.Passageway().apply {
+                    configSetting.curPassageway.run {
+                        val tmp = this.bottom
                         this.bottom = this.top
-                        this.top = (this.top + (this.top - this.bottom))
+                        this.top = (this.top + (this.top - tmp))
                     }
                 }
             }
@@ -134,11 +137,11 @@ class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand) {
+        if (!configSetting.canTrade) {
+            return
+        }
         configSetting.curFuse ++
         if (configSetting.curFuse == configSetting.fuse) {
-            configSetting.canTrade = false
-        }
-        if (!configSetting.canTrade) {
             return
         }
 

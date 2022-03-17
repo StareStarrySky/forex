@@ -14,7 +14,7 @@ import xyz.starestarrysky.forex.server.property.EmailConfig
 import javax.mail.MessagingException
 
 @Service
-class JForexEventEmailImpl : JForexEvent {
+class JForexEventImpl : JForexEvent {
     @Autowired
     private lateinit var emailConfig: EmailConfig
 

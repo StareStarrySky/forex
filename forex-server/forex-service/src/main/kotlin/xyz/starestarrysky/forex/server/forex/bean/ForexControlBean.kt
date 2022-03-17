@@ -9,13 +9,12 @@ import xyz.starestarrysky.forex.jforex.event.JForexEvent
 import xyz.starestarrysky.forex.jforex.platform.JForexPlatform
 import xyz.starestarrysky.forex.jforex.strategy.NeverEndingSpiral
 import xyz.starestarrysky.forex.jforex.strategy.NeverEndingSpiralEd
-import xyz.starestarrysky.forex.jforex.strategy.NeverEndingSpiralIng
 
 @Configuration
 class ForexControlBean {
     @Bean
-    fun jForexControl(configSettings: MutableList<ConfigSetting>, openOrder: OpenOrder, jForexEvent: JForexEvent): IStrategy {
-        return NeverEndingSpiral(JForexPlatform(), openOrder, configSettings, NeverEndingSpiralIng(), jForexEvent)
+    fun jForexControl(configSettings: MutableList<ConfigSetting>, openOrder: OpenOrder, neverEndingSpiralEd: NeverEndingSpiralEd, jForexEvent: JForexEvent): IStrategy {
+        return NeverEndingSpiral(JForexPlatform(), openOrder, configSettings, neverEndingSpiralEd, jForexEvent)
     }
 
     @Bean

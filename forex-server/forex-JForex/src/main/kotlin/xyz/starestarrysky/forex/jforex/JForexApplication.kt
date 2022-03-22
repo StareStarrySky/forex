@@ -26,11 +26,11 @@ class JForexApplication(
 
         client.setSystemListener(object : ISystemListener {
             override fun onStart(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}环境已启动: $processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境已启动：$processId")
             }
 
             override fun onStop(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}环境已停止: $processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境已停止：$processId")
                 if (client.startedStrategies.isEmpty()) {
                     exitProcess(0)
                 }
@@ -78,7 +78,7 @@ class JForexApplication(
             exitProcess(1)
         }
 
-        LOGGER.info("${LOGGER_LINE_PREFIX}货币对预置中")
+        LOGGER.info("${LOGGER_LINE_PREFIX}预置货币对")
         client.subscribedInstruments = hashSetOf(Instrument.GBPUSD, Instrument.USDJPY, Instrument.GBPJPY)
 
         LOGGER.info("${LOGGER_LINE_PREFIX}开始启动策略")

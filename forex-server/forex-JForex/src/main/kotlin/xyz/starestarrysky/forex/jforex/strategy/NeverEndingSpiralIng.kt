@@ -16,7 +16,6 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
     override var jForexEvent: JForexEvent? = null
 
-    // @Async
     override fun onBar(configSetting: ConfigSetting) {
         val history = jForexPlatform.iContext.history
 

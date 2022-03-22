@@ -74,7 +74,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
          *     -             -           -
          */
         if (((configSetting.bigASKBarOpen < bottomSmall && configSetting.bigASKBarHigh > bottom) || configSetting.bigASKBarOpen > bottomBig) && configSetting.smallASKBarOpen < bottomSmall) {
-            val order = openOrder.order[configSetting.instrument.name]
+            val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
                 sellAtMarket(configSetting)
@@ -104,7 +104,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
          *    -                         |
          */
         if ((configSetting.bigBIDBarOpen < topSmall || (configSetting.bigBIDBarOpen > topBig && configSetting.bigBIDBarLow < top)) && configSetting.smallBIDBarOpen > topBig) {
-            val order = openOrder.order[configSetting.instrument.name]
+            val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
                 buyAtMarket(configSetting)

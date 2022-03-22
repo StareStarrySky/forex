@@ -1,5 +1,6 @@
 package xyz.starestarrysky.forex.jforex.strategy
 
+import com.dukascopy.api.IOrder
 import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 import xyz.starestarrysky.forex.jforex.entity.OpenOrder
 import xyz.starestarrysky.forex.jforex.event.JForexEvent
@@ -20,7 +21,7 @@ interface NeverEndingSpiralEd {
     }
 
     fun update() {
-        openOrder.orders = jForexPlatform.iEngine.orders
+        openOrder.orders = jForexPlatform.iEngine.orders.filter { it.state == IOrder.State.FILLED }
         openOrder.order = openOrder.orders.groupBy { it.instrument.name() }.mapValues { it.value.first { iOrder -> iOrder.label.startsWith(ConfigSetting.LABEL_PREFIX) && it.key == iOrder.instrument.name() } }
     }
 

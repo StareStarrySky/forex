@@ -13,7 +13,7 @@ open class ConfigSetting {
 
     open var fuse = 0
 
-    var curFuse = 0
+    open var curFuse = 0
 
     open var bufferRandom = 0
 

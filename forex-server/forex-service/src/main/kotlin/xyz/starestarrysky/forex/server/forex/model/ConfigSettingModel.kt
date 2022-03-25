@@ -26,6 +26,9 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
     override var fuse = 4
 
     @JsonView(ModelView::class)
+    override var curFuse = 0
+
+    @JsonView(ModelView::class)
     override var bufferRandom = 0
 
     override var bigPeriod: Period = Period.FOUR_HOURS

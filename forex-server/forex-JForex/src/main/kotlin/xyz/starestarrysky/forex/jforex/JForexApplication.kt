@@ -26,11 +26,11 @@ class JForexApplication(
 
         client.setSystemListener(object : ISystemListener {
             override fun onStart(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}环境已启动：$processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境${processId}已启动")
             }
 
             override fun onStop(processId: Long) {
-                LOGGER.info("${LOGGER_LINE_PREFIX}环境已停止：$processId")
+                LOGGER.info("${LOGGER_LINE_PREFIX}环境${processId}已停止")
                 if (client.startedStrategies.isEmpty()) {
                     exitProcess(0)
                 }

@@ -139,14 +139,16 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         if (!configSetting.canTrade) {
             return
         }
-        configSetting.curFuse ++
-        if (configSetting.curFuse == configSetting.fuse) {
+        if (configSetting.curFuse >= configSetting.fuse) {
             return
         }
 
         val submitOrder = this.createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount)
         submitOrder?.run {
-            jForexEvent?.orderCreated(this)
+            if (state == IOrder.State.FILLED) {
+                configSetting.curFuse ++
+                jForexEvent?.orderCreated(this)
+            }
         }
     }
 

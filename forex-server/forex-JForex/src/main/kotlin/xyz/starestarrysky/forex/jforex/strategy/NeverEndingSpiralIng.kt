@@ -45,7 +45,8 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         val minOf = averages.minOf { it }
         val closestPassageway = configSetting.passageways[averages.indexOf(minOf)]
 
-        if (configSetting.curPassageway.top != closestPassageway.bottom && configSetting.curPassageway.bottom != closestPassageway.top) {
+        if (configSetting.curPassageway.top != closestPassageway.top && configSetting.curPassageway.bottom != closestPassageway.bottom
+            && configSetting.curPassageway.top != closestPassageway.bottom && configSetting.curPassageway.bottom != closestPassageway.top) {
             configSetting.curPassageway = closestPassageway
             configSetting.curFuse = 0
         }

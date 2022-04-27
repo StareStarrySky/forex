@@ -47,7 +47,10 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
         if (configSetting.curPassageway.top != closestPassageway.top && configSetting.curPassageway.bottom != closestPassageway.bottom
             && configSetting.curPassageway.top != closestPassageway.bottom && configSetting.curPassageway.bottom != closestPassageway.top) {
-            configSetting.curPassageway = closestPassageway
+            configSetting.curPassageway.run {
+                this.top = closestPassageway.top
+                this.bottom = closestPassageway.bottom
+            }
             configSetting.curFuse = 0
         }
     }

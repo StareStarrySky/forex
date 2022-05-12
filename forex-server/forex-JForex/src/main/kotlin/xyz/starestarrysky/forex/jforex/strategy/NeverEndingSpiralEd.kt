@@ -22,7 +22,7 @@ interface NeverEndingSpiralEd {
 
     fun update() {
         openOrder.orders = jForexPlatform.iEngine.orders.filter { it.state == IOrder.State.FILLED }
-        openOrder.order = openOrder.orders.groupBy { it.instrument.name() }.mapValues { it.value.first { iOrder -> iOrder.label.startsWith(ConfigSetting.LABEL_PREFIX) && it.key == iOrder.instrument.name() } }
+        openOrder.order = openOrder.orders.filter { it.label.startsWith(ConfigSetting.LABEL_PREFIX) }.groupBy { it.instrument.name() }.mapValues { it.value.first() }
     }
 
     fun onBar(configSetting: ConfigSetting)

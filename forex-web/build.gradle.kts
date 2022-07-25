@@ -13,19 +13,21 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-js"))
-    testImplementation(kotlin("test"))
     implementation("org.jetbrains.kotlin-wrappers:kotlin-react:${kotlinReactVersion}")
     implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:${kotlinReactDomVersion}")
     implementation("org.jetbrains.kotlin-wrappers:kotlin-styled:${kotlinStyledVersion}")
+
+    testImplementation(kotlin("test-js"))
 }
 
 kotlin {
-    js(LEGACY) {
-        binaries.executable()
+    js(IR) {
+        useCommonJs()
         browser {
             commonWebpackConfig {
                 cssSupport.enabled = true
             }
         }
+        binaries.executable()
     }
 }

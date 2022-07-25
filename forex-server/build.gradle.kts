@@ -22,12 +22,6 @@ buildscript {
 subprojects {
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven("https://www.dukascopy.com/client/jforexlib/publicrepo/")
-    }
-
     dependencies {
         val implementation by configurations
 

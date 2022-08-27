@@ -29,6 +29,8 @@ open class ConfigSetting {
 
     open lateinit var curPassageway: Passageway
 
+    lateinit var openPassageway: Passageway
+
     lateinit var bigBIDBarHigh: BigDecimal
 
     lateinit var bigBIDBarLow: BigDecimal

@@ -149,9 +149,8 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
                 && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
                 configSetting.curFuse = 0
-            } else {
-                return
             }
+            return
         }
 
         order?.close()

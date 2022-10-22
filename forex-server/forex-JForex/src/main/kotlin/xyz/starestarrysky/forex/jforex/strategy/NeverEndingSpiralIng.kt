@@ -85,19 +85,23 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
-                sellAtMarket(configSetting, null)
-                configSetting.curPassageway.run {
-                    val tmp = this.top
-                    this.top = this.bottom
-                    this.bottom = (this.bottom - (tmp - this.bottom))
-                }
-            } else {
-                if (order.isLong) {
-                    sellAtMarket(configSetting, order)
+                val hasTraded = sellAtMarket(configSetting, null)
+                if (hasTraded) {
                     configSetting.curPassageway.run {
                         val tmp = this.top
                         this.top = this.bottom
                         this.bottom = (this.bottom - (tmp - this.bottom))
+                    }
+                }
+            } else {
+                if (order.isLong) {
+                    val hasTraded = sellAtMarket(configSetting, order)
+                    if (hasTraded) {
+                        configSetting.curPassageway.run {
+                            val tmp = this.top
+                            this.top = this.bottom
+                            this.bottom = (this.bottom - (tmp - this.bottom))
+                        }
                     }
                 }
             }
@@ -114,43 +118,48 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
-                buyAtMarket(configSetting, null)
-                configSetting.curPassageway.run {
-                    val tmp = this.bottom
-                    this.bottom = this.top
-                    this.top = (this.top + (this.top - tmp))
-                }
-            } else {
-                if (!order.isLong) {
-                    buyAtMarket(configSetting, order)
+                val hasTraded = buyAtMarket(configSetting, null)
+                if (hasTraded) {
                     configSetting.curPassageway.run {
                         val tmp = this.bottom
                         this.bottom = this.top
                         this.top = (this.top + (this.top - tmp))
                     }
                 }
+            } else {
+                if (!order.isLong) {
+                    val hasTraded = buyAtMarket(configSetting, order)
+                    if (hasTraded) {
+                        configSetting.curPassageway.run {
+                            val tmp = this.bottom
+                            this.bottom = this.top
+                            this.top = (this.top + (this.top - tmp))
+                        }
+                    }
+                }
             }
         }
     }
 
-    private fun buyAtMarket(configSetting: ConfigSetting, order: IOrder?) {
-        tradeAtMarket(configSetting, IEngine.OrderCommand.BUY, order)
+    private fun buyAtMarket(configSetting: ConfigSetting, order: IOrder?): Boolean {
+        return tradeAtMarket(configSetting, IEngine.OrderCommand.BUY, order)
     }
 
-    private fun sellAtMarket(configSetting: ConfigSetting, order: IOrder?) {
-        tradeAtMarket(configSetting, IEngine.OrderCommand.SELL, order)
+    private fun sellAtMarket(configSetting: ConfigSetting, order: IOrder?): Boolean {
+        return tradeAtMarket(configSetting, IEngine.OrderCommand.SELL, order)
     }
 
-    private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand, order: IOrder?) {
+    private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand, order: IOrder?): Boolean {
         if (!configSetting.canTrade) {
-            return
+            return false
         }
-        if (configSetting.openPassageway.top > BigDecimal.ZERO && configSetting.curFuse >= configSetting.fuse) {
+        if (configSetting.curFuse >= configSetting.fuse) {
             if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
                 && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
                 configSetting.curFuse = 0
+            } else {
+                return false
             }
-            return
         }
 
         order?.close()
@@ -159,6 +168,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
         }
+        return true
     }
 
     private fun createOrder(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal): IOrder? {

@@ -12,6 +12,7 @@ spring:
     to: #{spring.mail.to}
 j-forex:
 #  uri: https://platform.dukascopy.com/demo/jforex.jnlp
-  uri: https://platform.dukascopy.com/demo_3/jforex_3.jnlp
-  public-key: DEMO210037QdsWQEU
-  private-key: QdsWQ
+#  uri: https://platform.dukascopy.com/demo_3/jforex_3.jnlp
+  uri: https://platform.dukascopy.com/demo_4/jforex_4.jnlp
+  public-key: DEMO210037LLKyoEU
+  private-key: LLKyo

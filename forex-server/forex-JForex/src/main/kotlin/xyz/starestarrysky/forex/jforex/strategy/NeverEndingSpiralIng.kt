@@ -153,11 +153,11 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         if (!configSetting.canTrade) {
             return false
         }
-        if (configSetting.curFuse >= configSetting.fuse) {
-            if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
-                && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
-                configSetting.curFuse = 0
-            } else {
+        if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
+            && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
+            configSetting.curFuse = 0
+        } else {
+            if (configSetting.curFuse >= configSetting.fuse) {
                 return false
             }
         }

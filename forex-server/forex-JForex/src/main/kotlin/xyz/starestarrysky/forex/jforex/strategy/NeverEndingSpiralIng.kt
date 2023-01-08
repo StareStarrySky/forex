@@ -25,10 +25,10 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         configSetting.bigBIDBarOpen = bigBIDBar.open.toBigDecimal()
         configSetting.smallBIDBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.BID, 0).open.toBigDecimal()
 
-        val smallASKBar = history.getBar(configSetting.instrument, configSetting.bigPeriod, OfferSide.ASK, 0)
-        configSetting.bigASKBarHigh = smallASKBar.high.toBigDecimal()
-        configSetting.bigASKBarLow = smallASKBar.low.toBigDecimal()
-        configSetting.bigASKBarOpen = smallASKBar.open.toBigDecimal()
+        val bigASKBar = history.getBar(configSetting.instrument, configSetting.bigPeriod, OfferSide.ASK, 0)
+        configSetting.bigASKBarHigh = bigASKBar.high.toBigDecimal()
+        configSetting.bigASKBarLow = bigASKBar.low.toBigDecimal()
+        configSetting.bigASKBarOpen = bigASKBar.open.toBigDecimal()
         configSetting.smallASKBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.ASK, 0).open.toBigDecimal()
 
         passageway(configSetting)
@@ -150,16 +150,9 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand, order: IOrder?): Boolean {
-        if (!configSetting.canTrade) {
+        val checkTrade = checkTrade(configSetting)
+        if (!checkTrade) {
             return false
-        }
-        if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
-            && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
-            configSetting.curFuse = 0
-        } else {
-            if (configSetting.curFuse >= configSetting.fuse) {
-                return false
-            }
         }
 
         order?.close()
@@ -167,6 +160,20 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         submitOrder?.run {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
+        }
+        return true
+    }
+
+    private fun checkTrade(configSetting: ConfigSetting): Boolean {
+        if (!configSetting.canTrade) {
+            return false
+        }
+        if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
+            && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
+            configSetting.curFuse = 0
+        }
+        if (configSetting.curFuse >= configSetting.fuse) {
+            return false
         }
         return true
     }

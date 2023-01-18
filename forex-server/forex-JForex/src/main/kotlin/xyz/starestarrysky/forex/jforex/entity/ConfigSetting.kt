@@ -17,6 +17,8 @@ open class ConfigSetting {
 
     open var bufferRandom = 0
 
+    var stopLossPip = 100
+
     open lateinit var bigPeriod: Period
 
     open lateinit var smallPeriod: Period

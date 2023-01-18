@@ -156,7 +156,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
 
         order?.close()
-        val submitOrder = this.createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount)
+        val submitOrder = this.createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting)
         submitOrder?.run {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
@@ -178,10 +178,34 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         return true
     }
 
+    private fun createOrderMain(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal, configSetting: ConfigSetting): IOrder? {
+        return if (orderCommand == IEngine.OrderCommand.BUY) {
+            val curIndex = configSetting.passageways.indexOfFirst { it.top == configSetting.curPassageway.bottom || it.bottom == configSetting.curPassageway.bottom }
+            val stopLossVal = configSetting.stopLossPip.toBigDecimal() * configSetting.instrument.pipValue.toBigDecimal() + (configSetting.curPassageway.top - configSetting.curPassageway.bottom)
+            if (curIndex == configSetting.passageways.size - 1 || (curIndex < configSetting.passageways.size - 1 && configSetting.curPassageway.bottom - configSetting.passageways[curIndex + 1].top > stopLossVal)) {
+                createOrder(instrument, orderCommand, tradeAmount, configSetting.curPassageway.bottom - stopLossVal)
+            } else {
+                createOrder(instrument, orderCommand, tradeAmount)
+            }
+        } else {
+            val curIndex = configSetting.passageways.indexOfFirst { it.top == configSetting.curPassageway.top || it.bottom == configSetting.curPassageway.top }
+            val stopLossVal = configSetting.stopLossPip.toBigDecimal() * configSetting.instrument.pipValue.toBigDecimal() + (configSetting.curPassageway.top - configSetting.curPassageway.bottom)
+            if (curIndex == 0 || (curIndex > 0 && configSetting.passageways[curIndex - 1].bottom - configSetting.curPassageway.top > stopLossVal)) {
+                createOrder(instrument, orderCommand, tradeAmount, configSetting.curPassageway.top + stopLossVal)
+            } else {
+                createOrder(instrument, orderCommand, tradeAmount)
+            }
+        }
+    }
+
     private fun createOrder(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal): IOrder? {
+        return createOrder(instrument, orderCommand, tradeAmount, BigDecimal.ZERO)
+    }
+
+    private fun createOrder(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal, stopLossPrice: BigDecimal): IOrder? {
         val label = getLabel()
         return try {
-            jForexPlatform.iEngine.submitOrder(label, instrument, orderCommand, tradeAmount.toDouble())
+            jForexPlatform.iEngine.submitOrder(label, instrument, orderCommand, tradeAmount.toDouble(), 0.0, -1.0, stopLossPrice.toDouble(), 0.0)
         } finally {
             update()
         }

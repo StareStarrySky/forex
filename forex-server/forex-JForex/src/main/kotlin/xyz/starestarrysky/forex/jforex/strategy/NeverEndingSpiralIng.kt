@@ -60,7 +60,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     private fun detail(configSetting: ConfigSetting) {
-        val bufferPoint = this.round(configSetting.instrument.pipValue * (Math.random() * configSetting.bufferRandom).toInt(), configSetting.instrument)
+        val bufferPoint = round(configSetting.instrument.pipValue * (Math.random() * configSetting.bufferRandom).toInt(), configSetting.instrument)
 
         val top = configSetting.curPassageway.top
         val bottom = configSetting.curPassageway.bottom
@@ -155,8 +155,8 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             return false
         }
 
-        order?.close()
-        val submitOrder = this.createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting)
+        closeOrder(order)
+        val submitOrder = createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting)
         submitOrder?.run {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
@@ -176,6 +176,14 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             return false
         }
         return true
+    }
+
+    private fun closeOrder(order: IOrder?) {
+        try {
+            order?.close()
+        } finally {
+            update()
+        }
     }
 
     private fun createOrderMain(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal, configSetting: ConfigSetting): IOrder? {
@@ -226,5 +234,20 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
     private fun round(price: Double, instrument: Instrument): BigDecimal {
         return price.toBigDecimal().setScale(instrument.pipScale + 1, RoundingMode.HALF_UP)
+    }
+
+    override fun closeOrder(id: String) {
+        closeOrder(openOrder.orders.find { iOrder -> iOrder.id == id })
+    }
+
+    override fun changeOrderCommand(id: String) {
+        val order = openOrder.orders.find { iOrder -> iOrder.id == id } ?: return
+
+        val instrument = order.instrument
+        val orderCommand = order.orderCommand
+        val amount = order.amount.toBigDecimal()
+
+        closeOrder(order)
+        createOrder(instrument, orderCommand, amount)
     }
 }

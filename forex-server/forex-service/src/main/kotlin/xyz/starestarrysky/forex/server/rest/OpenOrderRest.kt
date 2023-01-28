@@ -2,9 +2,7 @@ package xyz.starestarrysky.forex.server.rest
 
 import com.fasterxml.jackson.annotation.JsonView
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 import xyz.starestarrysky.forex.jforex.entity.OpenOrder
 import xyz.starestarrysky.forex.server.common.base.BaseRest
 import xyz.starestarrysky.forex.server.forex.model.OpenOrderModel
@@ -18,7 +16,19 @@ class OpenOrderRest : BaseRest() {
 
     @GetMapping
     @JsonView(OpenOrderModel.ModelView::class)
-    fun getOpenOder(): OpenOrder {
-        return openOrderManager.getOpenOrder()
+    fun getOrders(): OpenOrder {
+        return openOrderManager.getOrders()
+    }
+
+    @DeleteMapping("/{id}")
+    @JsonView(OpenOrderModel.ModelView::class)
+    fun closeOrder(@PathVariable("id") id: String): OpenOrder {
+        return openOrderManager.closeOrder(id)
+    }
+
+    @PutMapping("/{id}/order-command")
+    @JsonView(OpenOrderModel.ModelView::class)
+    fun changeOrderCommand(@PathVariable("id") id: String): OpenOrder {
+        return openOrderManager.changeOrderCommand(id)
     }
 }

@@ -26,4 +26,8 @@ interface NeverEndingSpiralEd {
     }
 
     fun onBar(configSetting: ConfigSetting)
+
+    fun closeOrder(id: String)
+
+    fun changeOrderCommand(id: String)
 }

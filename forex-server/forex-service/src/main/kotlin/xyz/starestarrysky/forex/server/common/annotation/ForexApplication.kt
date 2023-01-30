@@ -4,8 +4,8 @@ import org.springframework.core.annotation.AliasFor
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 
-@Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.CLASS)
 @MustBeDocumented
 @Component
 @Order

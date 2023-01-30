@@ -81,7 +81,5 @@ class NeverEndingSpiral(
 
     override fun onStop() {
         LOGGER.info("${LOGGER_LINE_PREFIX}策略停止中")
-
-        jForexPlatform.iContext.stop()
     }
 }

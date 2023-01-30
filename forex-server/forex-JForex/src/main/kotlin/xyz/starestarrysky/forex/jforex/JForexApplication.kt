@@ -7,7 +7,6 @@ import com.dukascopy.api.system.ISystemListener
 import org.slf4j.LoggerFactory
 import xyz.starestarrysky.forex.base.ForexRunApplication
 import xyz.starestarrysky.forex.jforex.config.JForexInfo
-import kotlin.system.exitProcess
 
 class JForexApplication(
     private val jForexInfo: JForexInfo,
@@ -16,14 +15,14 @@ class JForexApplication(
     companion object {
         private const val LOGGER_LINE_PREFIX = "环境日志："
         private val LOGGER = LoggerFactory.getLogger(JForexApplication::class.java)
+
+        private val client = ClientFactory.getDefaultInstance()
     }
 
     private var reconnects = 3
 
     @Throws(Exception::class)
     override fun run() {
-        val client = ClientFactory.getDefaultInstance()
-
         client.setSystemListener(object : ISystemListener {
             override fun onStart(processId: Long) {
                 LOGGER.info("${LOGGER_LINE_PREFIX}环境${processId}已启动")
@@ -31,9 +30,9 @@ class JForexApplication(
 
             override fun onStop(processId: Long) {
                 LOGGER.info("${LOGGER_LINE_PREFIX}环境${processId}已停止")
-                if (client.startedStrategies.isEmpty()) {
-                    exitProcess(0)
-                }
+//                if (client.startedStrategies.isEmpty()) {
+//                    exitProcess(0)
+//                }
             }
 
             override fun onConnect() {
@@ -49,7 +48,7 @@ class JForexApplication(
                         do {
                             try {
                                 Thread.sleep(60 * 1000.toLong())
-                            } catch (e: InterruptedException) {
+                            } catch (_: InterruptedException) {
                             }
                             try {
                                 if (client.isConnected) {
@@ -75,7 +74,8 @@ class JForexApplication(
         }
         if (!client.isConnected) {
             LOGGER.error("${LOGGER_LINE_PREFIX}服务器连接失败")
-            exitProcess(1)
+//            exitProcess(1)
+            return
         }
 
         LOGGER.info("${LOGGER_LINE_PREFIX}预置货币对")
@@ -83,5 +83,16 @@ class JForexApplication(
 
         LOGGER.info("${LOGGER_LINE_PREFIX}开始启动策略")
         client.startStrategy(strategy)
+    }
+
+    fun disconnect() {
+        if (client.isConnected) {
+            LOGGER.info("${LOGGER_LINE_PREFIX}环境停止中")
+            client.disconnect()
+        }
+    }
+
+    fun isConnected(): Boolean {
+        return client.isConnected
     }
 }

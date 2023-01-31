@@ -2,9 +2,7 @@ plugins {
     kotlin("js")
 }
 
-val kotlinReactVersion = project.property("kotlin.react.version") as String
-val kotlinReactDomVersion = project.property("kotlin.react.dom.version") as String
-val kotlinStyledVersion = project.property("kotlin.styled.version") as String
+val kotlinWrappersBomVersion = project.property("kotlin.wrappers.bom.version") as String
 
 repositories {
     mavenLocal()
@@ -13,9 +11,10 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-js"))
-    implementation("org.jetbrains.kotlin-wrappers:kotlin-react:${kotlinReactVersion}")
-    implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:${kotlinReactDomVersion}")
-    implementation("org.jetbrains.kotlin-wrappers:kotlin-styled:${kotlinStyledVersion}")
+    implementation(enforcedPlatform("org.jetbrains.kotlin-wrappers:kotlin-wrappers-bom:${kotlinWrappersBomVersion}"))
+    implementation("org.jetbrains.kotlin-wrappers:kotlin-react")
+    implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom")
+    implementation("org.jetbrains.kotlin-wrappers:kotlin-styled")
 
     testImplementation(kotlin("test-js"))
 }
@@ -25,7 +24,9 @@ kotlin {
         useCommonJs()
         browser {
             commonWebpackConfig {
-                cssSupport.enabled = true
+                cssSupport {
+                    enabled.set(true)
+                }
             }
         }
         binaries.executable()

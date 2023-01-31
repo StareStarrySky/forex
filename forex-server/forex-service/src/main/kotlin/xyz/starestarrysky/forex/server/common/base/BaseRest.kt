@@ -1,11 +1,11 @@
 package xyz.starestarrysky.forex.server.common.base
 
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.LoggerFactory
 import org.springframework.validation.BindException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseBody
-import javax.servlet.http.HttpServletResponse
 
 open class BaseRest {
     companion object {

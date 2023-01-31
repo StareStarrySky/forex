@@ -19,10 +19,10 @@ class JForexEventImpl : JForexEvent {
     private lateinit var emailConfig: EmailConfig
 
     @Autowired
-    lateinit var templateEngine: TemplateEngine
+    private lateinit var templateEngine: TemplateEngine
 
     @Autowired
-    lateinit var javaMailSender: JavaMailSender
+    private lateinit var javaMailSender: JavaMailSender
 
     @Async
     override fun orderCreated(order: IOrder) {

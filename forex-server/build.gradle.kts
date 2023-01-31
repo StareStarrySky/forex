@@ -8,13 +8,14 @@ buildscript {
     }
 
     val kotlinVersion = project.property("kotlin.version") as String
+    val dokkaGradleVersion = project.property("dokka.gradle.version") as String
     val gradleDockerVersion = project.property("gradle.docker.version") as String
 
     dependencies {
         classpath(kotlin("allopen", kotlinVersion))
         classpath(kotlin("noarg", kotlinVersion))
         classpath(kotlin("gradle-plugin", kotlinVersion))
-        classpath("org.jetbrains.dokka:dokka-gradle-plugin:${kotlinVersion}")
+        classpath("org.jetbrains.dokka:dokka-gradle-plugin:${dokkaGradleVersion}")
         classpath("com.bmuschko:gradle-docker-plugin:${gradleDockerVersion}")
     }
 }

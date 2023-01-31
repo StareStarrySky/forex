@@ -13,7 +13,10 @@ dependencies {
     api(project(":forex-server:forex-base"))
 
     api("com.dukascopy.api:JForex-API:${jForexAPIVersion}:sources")
-    api("com.dukascopy.dds2:DDS2-jClient-JForex:${dds2JClientJForexVersion}")
+    api("com.dukascopy.dds2:DDS2-jClient-JForex:${dds2JClientJForexVersion}") {
+        // for springboot mail 3.0.2
+        exclude("javax.activation", "activation")
+    }
 }
 
 val generateSourcesJar by tasks.creating(Jar::class) {

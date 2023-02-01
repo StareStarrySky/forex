@@ -14,7 +14,7 @@ import java.math.BigDecimal
 
 class ConfigSettingModel : ConfigSetting(), Serializable {
     companion object {
-        private const val serialVersionUID = 1L
+        private const val serialVersionUID = 7494560114205123318L
     }
 
     interface ModelView

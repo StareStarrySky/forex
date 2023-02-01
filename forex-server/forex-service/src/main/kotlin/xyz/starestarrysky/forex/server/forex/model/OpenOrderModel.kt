@@ -9,7 +9,7 @@ import java.io.Serializable
 
 class OpenOrderModel : OpenOrder(), Serializable {
     companion object {
-        private const val serialVersionUID = 1L
+        private const val serialVersionUID = 3852165334810530534L
     }
 
     interface ModelView

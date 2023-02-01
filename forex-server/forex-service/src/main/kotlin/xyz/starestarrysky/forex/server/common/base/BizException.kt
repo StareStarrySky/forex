@@ -2,7 +2,7 @@ package xyz.starestarrysky.forex.server.common.base
 
 class BizException : RuntimeException {
     companion object {
-        private const val serialVersionUID = 9L
+        private const val serialVersionUID = 684938209066191753L
 
         const val ERROR_CODE = "9999"
         const val SUCCESS_CODE = "10000"

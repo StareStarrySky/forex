@@ -20,6 +20,7 @@ class IOrderSerializer : JsonSerializer<IOrder>() {
             writeObjectField("originalAmount", value?.originalAmount)
             writeObjectField("profitLossInPips", value?.profitLossInPips)
             writeObjectField("profitLossInAccountCurrency", value?.profitLossInAccountCurrency)
+            writeObjectField("stopLossPrice", value?.stopLossPrice)
             writeEndObject()
         }
     }

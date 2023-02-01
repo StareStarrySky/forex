@@ -237,11 +237,11 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     override fun closeOrder(id: String) {
-        closeOrder(openOrder.orders.find { iOrder -> iOrder.id == id })
+        closeOrder(openOrder.all.find { iOrder -> iOrder.id == id } ?: return)
     }
 
     override fun changeOrderCommand(id: String) {
-        val order = openOrder.orders.find { iOrder -> iOrder.id == id } ?: return
+        val order = openOrder.all.find { iOrder -> iOrder.id == id } ?: return
 
         val instrument = order.instrument
         val orderCommand = order.orderCommand

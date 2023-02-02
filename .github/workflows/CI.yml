@@ -21,6 +21,7 @@ jobs:
           DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
           PROJECT_VERSION: ${{ steps.get-version.outputs.PROJECT_VERSION }}
         run: |
+          export JAVA_HOME=$JAVA_HOME_17_X64
           chmod u+x ./gradlew
           ./gradlew :forex-server:forex-service:pushImage -x test
           ./gradlew :forex-server:forex-service:removeImage

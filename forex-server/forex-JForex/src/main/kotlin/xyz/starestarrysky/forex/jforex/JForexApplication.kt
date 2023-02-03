@@ -21,6 +21,8 @@ class JForexApplication(
 
     private var reconnects = 3
 
+    private var connect = true
+
     @Throws(Exception::class)
     override fun run() {
         client.setSystemListener(object : ISystemListener {
@@ -30,6 +32,7 @@ class JForexApplication(
 
             override fun onStop(processId: Long) {
                 LOGGER.info("${LOGGER_LINE_PREFIX}环境${processId}已停止")
+                connect = true
 //                if (client.startedStrategies.isEmpty()) {
 //                    exitProcess(0)
 //                }
@@ -40,6 +43,10 @@ class JForexApplication(
             }
 
             override fun onDisconnect() {
+                if (!connect) {
+                    LOGGER.info("${LOGGER_LINE_PREFIX}环境停止中")
+                    return
+                }
                 val runnable = Runnable {
                     if (reconnects > 0) {
                         client.reconnect()
@@ -87,7 +94,7 @@ class JForexApplication(
 
     fun disconnect() {
         if (client.isConnected) {
-            LOGGER.info("${LOGGER_LINE_PREFIX}环境停止中")
+            connect = false
             client.disconnect()
         }
     }

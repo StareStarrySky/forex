@@ -20,6 +20,6 @@ allprojects {
 }
 
 tasks.named<Wrapper>("wrapper") {
-    gradleVersion = "7.6"
+    gradleVersion = project.property("gradle.version") as String
     distributionType = Wrapper.DistributionType.BIN
 }

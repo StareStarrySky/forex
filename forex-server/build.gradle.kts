@@ -21,6 +21,9 @@ buildscript {
 }
 
 subprojects {
+    val javaVersion = project.property("java.version") as String
+
+    apply(plugin = "java-library")
     apply(plugin = "org.jetbrains.kotlin.jvm")
 
     dependencies {
@@ -28,6 +31,11 @@ subprojects {
 
         implementation((kotlin("reflect")))
         implementation((kotlin("stdlib")))
+    }
+
+    configure<JavaPluginExtension> {
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
     }
 
     configure<SourceSetContainer> {
@@ -46,7 +54,7 @@ subprojects {
     tasks.withType<KotlinCompile> {
         kotlinOptions {
             freeCompilerArgs = listOf("-Xjsr305=strict")
-            jvmTarget = "17"
+            jvmTarget = javaVersion
         }
     }
 }

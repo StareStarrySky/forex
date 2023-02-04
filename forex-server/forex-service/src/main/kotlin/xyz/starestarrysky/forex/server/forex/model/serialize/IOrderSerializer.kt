@@ -10,7 +10,7 @@ import org.springframework.boot.jackson.JsonComponent
 class IOrderSerializer : JsonSerializer<IOrder>() {
     override fun serialize(value: IOrder?, gen: JsonGenerator?, serializers: SerializerProvider?) {
         gen?.run {
-            writeStartObject(value, 9)
+            writeStartObject(value, 10)
             writeObjectField("id", value?.id)
             writeObjectField("label", value?.label)
             writeObjectField("fillTime", value?.fillTime)
@@ -18,8 +18,10 @@ class IOrderSerializer : JsonSerializer<IOrder>() {
             writeObjectField("orderCommand", value?.orderCommand?.name)
             writeObjectField("openPrice", value?.openPrice)
             writeObjectField("originalAmount", value?.originalAmount)
-            writeObjectField("profitLossInPips", value?.profitLossInPips)
-            writeObjectField("profitLossInAccountCurrency", value?.profitLossInAccountCurrency)
+            try {
+                writeObjectField("profitLossInPips", value?.profitLossInPips)
+                writeObjectField("profitLossInAccountCurrency", value?.profitLossInAccountCurrency)
+            } catch (_: NullPointerException) {}
             writeObjectField("stopLossPrice", value?.stopLossPrice)
             writeEndObject()
         }

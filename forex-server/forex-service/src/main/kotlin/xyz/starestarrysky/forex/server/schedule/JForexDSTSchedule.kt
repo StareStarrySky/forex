@@ -10,14 +10,14 @@ class JForexDSTSchedule : ForexSchedule {
     @Autowired
     private lateinit var server: ForexServer
 
-    @DSTScheduled(cron = "0 5 21 ? * 7")
+    @DSTScheduled(cron = "0 3 21 ? * 7")
     fun start() {
         if (!server.isRunning()) {
             server.start()
         }
     }
 
-    @DSTScheduled(cron = "0 55 20 ? * 5")
+    @DSTScheduled(cron = "0 57 20 ? * 5")
     fun stop() {
         if (server.isRunning()) {
             server.stop()

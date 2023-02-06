@@ -8,4 +8,8 @@ open class OpenOrder {
     open lateinit var orders: List<IOrder>
 
     lateinit var all: List<IOrder>
+
+    var orderIdToClose: String? = null
+
+    var orderIdToChange: String? = null
 }

@@ -47,7 +47,14 @@ class NeverEndingSpiral(
     }
 
     override fun onTick(instrument: Instrument, tick: ITick) {
-
+        openOrder.orderIdToClose?.run {
+            neverEndingSpiralEd.closeOrder(this)
+            openOrder.orderIdToClose = null
+        }
+        openOrder.orderIdToChange?.run {
+            neverEndingSpiralEd.changeOrderCommand(this)
+            openOrder.orderIdToChange = null
+        }
     }
 
     override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {

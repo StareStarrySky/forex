@@ -244,7 +244,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         val order = openOrder.all.find { iOrder -> iOrder.id == id } ?: return
 
         val instrument = order.instrument
-        val orderCommand = order.orderCommand
+        val orderCommand = if (order.isLong) IEngine.OrderCommand.SELL else IEngine.OrderCommand.BUY
         val amount = order.amount.toBigDecimal()
 
         closeOrder(order)

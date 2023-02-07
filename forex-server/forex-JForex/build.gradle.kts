@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.tooling.core.closure
+
 //import org.jetbrains.dokka.gradle.DokkaTask
 
 plugins {
@@ -6,14 +8,11 @@ plugins {
     kotlin("jvm")
 }
 
-val jForexAPIVersion = project.property("JForex-API.version") as String
-val dds2JClientJForexVersion = project.property("DDS2-jClient-JForex.version") as String
-
 dependencies {
     api(project(":forex-server:forex-base"))
 
-    api("com.dukascopy.api:JForex-API:${jForexAPIVersion}:sources")
-    api("com.dukascopy.dds2:DDS2-jClient-JForex:${dds2JClientJForexVersion}") {
+    api("com.dukascopy.api:JForex-API:${libs.versions.jforex.api.get()}:sources")
+    api(libs.dds2.jClient.jForex) {
         // for springboot mail 3.0.2
         exclude("javax.activation", "activation")
     }

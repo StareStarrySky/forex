@@ -3,20 +3,16 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 buildscript {
     repositories {
         mavenLocal()
-        maven("https://plugins.gradle.org/m2/")
+        gradlePluginPortal()
         mavenCentral()
     }
 
-    val kotlinVersion = project.property("kotlin.version") as String
-    val dokkaGradleVersion = project.property("dokka.gradle.version") as String
-    val gradleDockerVersion = project.property("gradle.docker.version") as String
-
     dependencies {
-        classpath(kotlin("allopen", kotlinVersion))
-        classpath(kotlin("noarg", kotlinVersion))
-        classpath(kotlin("gradle-plugin", kotlinVersion))
-        classpath("org.jetbrains.dokka:dokka-gradle-plugin:${dokkaGradleVersion}")
-        classpath("com.bmuschko:gradle-docker-plugin:${gradleDockerVersion}")
+        classpath(kotlin("allopen", libs.versions.kotlin.asProvider().get()))
+        classpath(kotlin("noarg", libs.versions.kotlin.asProvider().get()))
+        classpath(kotlin("gradle-plugin", libs.versions.kotlin.asProvider().get()))
+        classpath("org.jetbrains.dokka:dokka-gradle-plugin:${libs.versions.dokka.gradle.get()}")
+        classpath("com.bmuschko:gradle-docker-plugin:${libs.versions.gradle.docker.get()}")
     }
 }
 

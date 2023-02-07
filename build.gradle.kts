@@ -11,15 +11,9 @@ plugins {
 allprojects {
     group = "xyz.starestarrysky"
     version = System.getenv("PROJECT_VERSION")
-
-    repositories {
-        mavenLocal()
-        mavenCentral()
-        maven("https://www.dukascopy.com/client/jforexlib/publicrepo/")
-    }
 }
 
 tasks.named<Wrapper>("wrapper") {
-    gradleVersion = project.property("gradle.version") as String
+    gradleVersion = libs.versions.gradle.asProvider().get()
     distributionType = Wrapper.DistributionType.BIN
 }

@@ -1,0 +1,15 @@
+[versions]
+kotlin = "1.8.0"
+
+gradle = "7.6"
+
+dokka-gradle = "1.7.20"
+gradle-docker = "9.1.0"
+
+jforex-API = "2.13.98"
+
+kotlin-wrappers-bom = "1.0.0-pre.489"
+
+
+[libraries]
+dds2-jClient-JForex = { group = "com.dukascopy.dds2", name = "DDS2-jClient-JForex", version = "3.6.37" }

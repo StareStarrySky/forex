@@ -12,7 +12,7 @@ buildscript {
         classpath(kotlin("noarg", libs.versions.kotlin.asProvider().get()))
         classpath(kotlin("gradle-plugin", libs.versions.kotlin.asProvider().get()))
         classpath("org.jetbrains.dokka:dokka-gradle-plugin:${libs.versions.dokka.gradle.get()}")
-        classpath("com.bmuschko:gradle-docker-plugin:${libs.versions.gradle.docker.get()}")
+        classpath("com.bmuschko:gradle-docker-plugin:${libs.versions.gradle.docker.bmuschko.get()}")
     }
 }
 

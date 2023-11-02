@@ -1,7 +1,3 @@
-import org.jetbrains.kotlin.tooling.core.closure
-
-//import org.jetbrains.dokka.gradle.DokkaTask
-
 plugins {
     id("maven-publish")
     id("org.jetbrains.dokka")
@@ -23,10 +19,9 @@ val generateSourcesJar by tasks.creating(Jar::class) {
     from(sourceSets.main.get().java.srcDirs)
 }
 
-//tasks.register<DokkaTask>("dokkaJavadoc") {
-//    outputFormat = "javadoc"
-//    outputDirectory = "$buildDir" + File.separator + "javadoc"
-//}
+tasks.dokkaJavadoc {
+    outputDirectory.set(layout.buildDirectory.dir("dokka/$name"))
+}
 
 val generateJavadoc by tasks.creating(Jar::class) {
     dependsOn("dokkaJavadoc")

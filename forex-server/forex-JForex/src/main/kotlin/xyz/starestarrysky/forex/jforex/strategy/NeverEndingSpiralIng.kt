@@ -150,12 +150,18 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand, order: IOrder?): Boolean {
-        val checkTrade = checkTrade(configSetting)
-        if (!checkTrade) {
+        if (!configSetting.canTrade) {
             return false
         }
 
         closeOrder(order)
+
+        val checkTrade = checkFuse(configSetting)
+        if (!checkTrade) {
+            configSetting.curFuse = 0
+            return false
+        }
+
         val submitOrder = createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting)
         submitOrder?.run {
             configSetting.curFuse ++
@@ -164,18 +170,12 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         return true
     }
 
-    private fun checkTrade(configSetting: ConfigSetting): Boolean {
-        if (!configSetting.canTrade) {
-            return false
-        }
+    private fun checkFuse(configSetting: ConfigSetting): Boolean {
         if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
             && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
             configSetting.curFuse = 0
         }
-        if (configSetting.curFuse >= configSetting.fuse) {
-            return false
-        }
-        return true
+        return configSetting.curFuse < configSetting.fuse
     }
 
     private fun closeOrder(order: IOrder?) {

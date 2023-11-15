@@ -55,12 +55,17 @@ class NeverEndingSpiral(
             neverEndingSpiralEd.changeOrderCommand(this)
             openOrder.orderIdToChange = null
         }
+        TODO("1.create a pool for hear. we can put orderIdToClose/orderIdToChange... into the pool" +
+            "2.split out the NeverEndingSpiralEd#closeOrder(String) and the NeverEndingSpiralEd#closeOrder(String)")
     }
 
     override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {
         configSettings.forEach {
             if (instrument == it.instrument && (period == it.smallPeriod || period == it.bigPeriod)) {
-                neverEndingSpiralEd.onBar(it)
+                neverEndingSpiralEd.run {
+                    configSetting = it
+                    onBar()
+                }
             }
         }
     }

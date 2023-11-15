@@ -16,31 +16,38 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
     override var jForexEvent: JForexEvent? = null
 
-    override fun onBar(configSetting: ConfigSetting) {
+    override lateinit var configSetting: ConfigSetting
+
+    override fun onBar() {
+        fillConfigSetting()
+        passageway()
+        detail()
+    }
+
+    private fun fillConfigSetting() {
         val history = jForexPlatform.iContext.history
 
         val bigBIDBar = history.getBar(configSetting.instrument, configSetting.bigPeriod, OfferSide.BID, 0)
-        configSetting.bigBIDBarHigh = bigBIDBar.high.toBigDecimal()
-        configSetting.bigBIDBarLow = bigBIDBar.low.toBigDecimal()
-        configSetting.bigBIDBarOpen = bigBIDBar.open.toBigDecimal()
-        configSetting.smallBIDBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.BID, 0).open.toBigDecimal()
-
         val bigASKBar = history.getBar(configSetting.instrument, configSetting.bigPeriod, OfferSide.ASK, 0)
-        configSetting.bigASKBarHigh = bigASKBar.high.toBigDecimal()
-        configSetting.bigASKBarLow = bigASKBar.low.toBigDecimal()
-        configSetting.bigASKBarOpen = bigASKBar.open.toBigDecimal()
-        configSetting.smallASKBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.ASK, 0).open.toBigDecimal()
 
-        passageway(configSetting)
+        configSetting.apply {
+            bigBIDBarHigh = bigBIDBar.high.toBigDecimal()
+            bigBIDBarLow = bigBIDBar.low.toBigDecimal()
+            bigBIDBarOpen = bigBIDBar.open.toBigDecimal()
+            smallBIDBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.BID, 0).open.toBigDecimal()
 
-        detail(configSetting)
+            bigASKBarHigh = bigASKBar.high.toBigDecimal()
+            bigASKBarLow = bigASKBar.low.toBigDecimal()
+            bigASKBarOpen = bigASKBar.open.toBigDecimal()
+            smallASKBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.ASK, 0).open.toBigDecimal()
+        }
     }
 
-    private fun passageway(configSetting: ConfigSetting) {
-        val closestPassagewayNow = findClosestPassageway(configSetting, configSetting.smallBIDBarOpen)
+    private fun passageway() {
+        val closestPassagewayNow = findClosestPassageway(configSetting.smallBIDBarOpen)
 
         val order = openOrder.order[configSetting.instrument.name()]
-        configSetting.openPassageway = if (order == null) ConfigSetting.Passageway() else findClosestPassageway(configSetting, order.openPrice.toBigDecimal())
+        configSetting.openPassageway = if (order == null) ConfigSetting.Passageway() else findClosestPassageway(order.openPrice.toBigDecimal())
 
         if (configSetting.curPassageway.top != closestPassagewayNow.top && configSetting.curPassageway.bottom != closestPassagewayNow.bottom
             && configSetting.curPassageway.top != closestPassagewayNow.bottom && configSetting.curPassageway.bottom != closestPassagewayNow.top) {
@@ -51,7 +58,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
     }
 
-    private fun findClosestPassageway(configSetting: ConfigSetting, price: BigDecimal): ConfigSetting.Passageway {
+    private fun findClosestPassageway(price: BigDecimal): ConfigSetting.Passageway {
         val averages = configSetting.passageways.map { passageway ->
             ((passageway.top + passageway.bottom).divide(BigDecimal.valueOf(2), RoundingMode.HALF_UP) - price).abs()
         }
@@ -59,7 +66,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         return configSetting.passageways[averages.indexOf(minOf)]
     }
 
-    private fun detail(configSetting: ConfigSetting) {
+    private fun detail() {
         val bufferPoint = round(configSetting.instrument.pipValue * (Math.random() * configSetting.bufferRandom).toInt(), configSetting.instrument)
 
         val top = configSetting.curPassageway.top
@@ -85,7 +92,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
-                val hasTraded = sellAtMarket(configSetting, null)
+                val hasTraded = sellAtMarket(null)
                 if (hasTraded) {
                     configSetting.curPassageway.run {
                         val tmp = this.top
@@ -95,7 +102,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
                 }
             } else {
                 if (order.isLong) {
-                    val hasTraded = sellAtMarket(configSetting, order)
+                    val hasTraded = sellAtMarket(order)
                     if (hasTraded) {
                         configSetting.curPassageway.run {
                             val tmp = this.top
@@ -118,7 +125,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             val order = openOrder.order[configSetting.instrument.name()]
 
             if (order == null || order.state != IOrder.State.FILLED) {
-                val hasTraded = buyAtMarket(configSetting, null)
+                val hasTraded = buyAtMarket(null)
                 if (hasTraded) {
                     configSetting.curPassageway.run {
                         val tmp = this.bottom
@@ -128,7 +135,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
                 }
             } else {
                 if (!order.isLong) {
-                    val hasTraded = buyAtMarket(configSetting, order)
+                    val hasTraded = buyAtMarket(order)
                     if (hasTraded) {
                         configSetting.curPassageway.run {
                             val tmp = this.bottom
@@ -141,28 +148,28 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
     }
 
-    private fun buyAtMarket(configSetting: ConfigSetting, order: IOrder?): Boolean {
-        return tradeAtMarket(configSetting, IEngine.OrderCommand.BUY, order)
+    private fun buyAtMarket(order: IOrder?): Boolean {
+        return tradeAtMarket(IEngine.OrderCommand.BUY, order)
     }
 
-    private fun sellAtMarket(configSetting: ConfigSetting, order: IOrder?): Boolean {
-        return tradeAtMarket(configSetting, IEngine.OrderCommand.SELL, order)
+    private fun sellAtMarket(order: IOrder?): Boolean {
+        return tradeAtMarket(IEngine.OrderCommand.SELL, order)
     }
 
-    private fun tradeAtMarket(configSetting: ConfigSetting, orderCommand: IEngine.OrderCommand, order: IOrder?): Boolean {
+    private fun tradeAtMarket(orderCommand: IEngine.OrderCommand, order: IOrder?): Boolean {
         if (!configSetting.canTrade) {
             return false
         }
 
         closeOrder(order)
 
-        val checkTrade = checkFuse(configSetting)
+        val checkTrade = checkFuse()
         if (!checkTrade) {
             configSetting.curFuse = 0
             return false
         }
 
-        val submitOrder = createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting)
+        val submitOrder = createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount)
         submitOrder?.run {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
@@ -170,7 +177,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         return true
     }
 
-    private fun checkFuse(configSetting: ConfigSetting): Boolean {
+    private fun checkFuse(): Boolean {
         if (configSetting.curPassageway.top != configSetting.openPassageway.top && configSetting.curPassageway.bottom != configSetting.openPassageway.bottom
             && configSetting.curPassageway.top != configSetting.openPassageway.bottom && configSetting.curPassageway.bottom != configSetting.openPassageway.top) {
             configSetting.curFuse = 0
@@ -186,7 +193,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
     }
 
-    private fun createOrderMain(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal, configSetting: ConfigSetting): IOrder? {
+    private fun createOrderMain(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal): IOrder? {
         return if (orderCommand == IEngine.OrderCommand.BUY) {
             val curIndex = configSetting.passageways.indexOfFirst { it.top == configSetting.curPassageway.bottom || it.bottom == configSetting.curPassageway.bottom }
             val stopLossVal = configSetting.stopLossPip.toBigDecimal() * configSetting.instrument.pipValue.toBigDecimal() + (configSetting.curPassageway.top - configSetting.curPassageway.bottom)

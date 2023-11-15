@@ -13,6 +13,8 @@ interface NeverEndingSpiralEd {
 
     var jForexEvent: JForexEvent?
 
+    var configSetting: ConfigSetting
+
     fun init(jForexPlatform: JForexPlatform, openOrder: OpenOrder, jForexEvent: JForexEvent?) {
         this.jForexPlatform = jForexPlatform
         this.openOrder = openOrder
@@ -26,7 +28,7 @@ interface NeverEndingSpiralEd {
         openOrder.order = openOrder.all.filter { it.label.startsWith(ConfigSetting.LABEL_PREFIX) }.groupBy { it.instrument.name() }.mapValues { it.value.first() }
     }
 
-    fun onBar(configSetting: ConfigSetting)
+    fun onBar()
 
     fun closeOrder(id: String)
 

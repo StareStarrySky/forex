@@ -27,11 +27,11 @@ open class ConfigSetting {
 
     open lateinit var tradeAmount: BigDecimal
 
-    open lateinit var passageways: List<Passageway>
+    open lateinit var passageways: List<BigDecimal>
 
-    open lateinit var curPassageway: Passageway
+    open lateinit var curPassageway: BigDecimal
 
-    lateinit var openPassageway: Passageway
+    lateinit var openPassageway: BigDecimal
 
     lateinit var bigBIDBarHigh: BigDecimal
 
@@ -48,10 +48,4 @@ open class ConfigSetting {
     lateinit var bigASKBarOpen: BigDecimal
 
     lateinit var smallASKBarOpen: BigDecimal
-
-    class Passageway {
-        var top: BigDecimal = BigDecimal.ZERO
-
-        var bottom: BigDecimal = BigDecimal.ZERO
-    }
 }

@@ -14,6 +14,7 @@ import java.math.BigDecimal
 
 class ConfigSettingModel : ConfigSetting(), Serializable {
     companion object {
+        // TODO: update serialVersionUID
         private const val serialVersionUID = 7494560114205123318L
     }
 
@@ -45,9 +46,9 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
 
     @JsonView(ModelView::class)
     @JsonSerialize(using = ObjectSerializer::class)
-    override var passageways: List<Passageway> = arrayListOf()
+    override var passageways: List<BigDecimal> = arrayListOf()
 
     @JsonView(ModelView::class)
     @JsonSerialize(using = ObjectSerializer::class)
-    override var curPassageway: Passageway = Passageway()
+    override var curPassageway: BigDecimal = BigDecimal.ZERO
 }

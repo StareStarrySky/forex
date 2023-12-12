@@ -1,5 +1,7 @@
 package xyz.starestarrysky.forex.server.rest
 
+import com.dukascopy.api.IEngine
+import com.dukascopy.api.Instrument
 import com.fasterxml.jackson.annotation.JsonView
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
@@ -30,5 +32,11 @@ class OpenOrderRest : BaseRest() {
     @JsonView(OpenOrderModel.ModelView::class)
     fun changeOrderCommand(@PathVariable("id") id: String): OpenOrder {
         return openOrderManager.changeOrderCommand(id)
+    }
+
+    @PostMapping("/{instrument}/{order-command}")
+    @JsonView(OpenOrderModel.ModelView::class)
+    fun createOrder(@PathVariable("instrument") instrument: Instrument, @PathVariable("order-command") orderCommand: IEngine.OrderCommand): OpenOrder {
+        return openOrderManager.createOrder(instrument, orderCommand)
     }
 }

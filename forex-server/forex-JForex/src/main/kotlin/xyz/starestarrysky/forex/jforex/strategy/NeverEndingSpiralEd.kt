@@ -1,6 +1,8 @@
 package xyz.starestarrysky.forex.jforex.strategy
 
+import com.dukascopy.api.IEngine
 import com.dukascopy.api.IOrder
+import com.dukascopy.api.Instrument
 import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 import xyz.starestarrysky.forex.jforex.entity.OpenOrder
 import xyz.starestarrysky.forex.jforex.event.JForexEvent
@@ -33,4 +35,6 @@ interface NeverEndingSpiralEd {
     fun closeOrder(id: String)
 
     fun changeOrderCommand(id: String)
+
+    fun createOrderModel(configSettings: MutableList<ConfigSetting>, instrument: Instrument, orderCommand: IEngine.OrderCommand)
 }

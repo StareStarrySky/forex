@@ -125,7 +125,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             return
         }
 
-        val submitOrder = createOrderMain(configSetting.instrument, orderCommand, configSetting.tradeAmount)
+        val submitOrder = createOrderMain(orderCommand)
         submitOrder?.run {
             configSetting.curFuse ++
             jForexEvent?.orderCreated(this)
@@ -147,22 +147,26 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
     }
 
-    private fun createOrderMain(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal): IOrder? {
+    private fun createOrderMain(orderCommand: IEngine.OrderCommand): IOrder? {
         val curIndex = configSetting.passageways.indexOfFirst { it.compareTo(configSetting.curPassageway) == 0 }
-        val stopLossVal = configSetting.stopLossPip.toBigDecimal() * configSetting.instrument.pipValue.toBigDecimal()
+        val stopLossVal = getStopLossVal(configSetting)
         return if (orderCommand == IEngine.OrderCommand.BUY) {
             if (curIndex == configSetting.passageways.size - 1 || (curIndex < configSetting.passageways.size - 1 && configSetting.curPassageway - configSetting.passageways[curIndex + 1] > stopLossVal)) {
-                createOrder(instrument, orderCommand, tradeAmount, configSetting.curPassageway - stopLossVal)
+                createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting.curPassageway - stopLossVal)
             } else {
-                createOrder(instrument, orderCommand, tradeAmount)
+                createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount)
             }
         } else {
             if (curIndex == 0 || (curIndex > 0 && configSetting.passageways[curIndex - 1] - configSetting.curPassageway > stopLossVal)) {
-                createOrder(instrument, orderCommand, tradeAmount, configSetting.curPassageway + stopLossVal)
+                createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount, configSetting.curPassageway + stopLossVal)
             } else {
-                createOrder(instrument, orderCommand, tradeAmount)
+                createOrder(configSetting.instrument, orderCommand, configSetting.tradeAmount)
             }
         }
+    }
+
+    private fun getStopLossVal(config: ConfigSetting): BigDecimal {
+        return config.stopLossPip.toBigDecimal() * config.instrument.pipValue.toBigDecimal()
     }
 
     private fun createOrder(instrument: Instrument, orderCommand: IEngine.OrderCommand, tradeAmount: BigDecimal): IOrder? {
@@ -209,5 +213,14 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
         closeOrder(order)
         createOrder(instrument, orderCommand, amount)
+    }
+
+    override fun createOrderModel(configSettings: MutableList<ConfigSetting>, instrument: Instrument, orderCommand: IEngine.OrderCommand) {
+        openOrder.order[instrument.name()] ?: return
+
+        val config = configSettings.find { configSetting -> configSetting.instrument == instrument } ?: return
+
+        val stopLossVal = getStopLossVal(config)
+        createOrder(instrument, orderCommand, config.tradeAmount, if (orderCommand == IEngine.OrderCommand.BUY) config.curPassageway - stopLossVal else config.curPassageway + stopLossVal)
     }
 }

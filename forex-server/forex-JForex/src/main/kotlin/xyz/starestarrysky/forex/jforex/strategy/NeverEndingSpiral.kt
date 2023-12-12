@@ -55,8 +55,15 @@ class NeverEndingSpiral(
             neverEndingSpiralEd.changeOrderCommand(this)
             openOrder.orderIdToChange = null
         }
-        TODO("1.create a pool for hear. we can put orderIdToClose/orderIdToChange... into the pool" +
-            "2.split out the NeverEndingSpiralEd#closeOrder(String) and the NeverEndingSpiralEd#closeOrder(String)")
+        openOrder.instrument4Create?.run {
+            openOrder.orderCommand4Create?.let {
+                neverEndingSpiralEd.createOrderModel(configSettings, this, it)
+                openOrder.instrument4Create = null
+                openOrder.orderCommand4Create = null
+            }
+        }
+        // TODO: 1.create a pool for hear. we can put orderIdToClose/orderIdToChange... into the pool
+        // TODO: 2.split out the NeverEndingSpiralEd#closeOrder(String) and the NeverEndingSpiralEd#changeOrderCommand(String)
     }
 
     override fun onBar(instrument: Instrument, period: Period, askBar: IBar, bidBar: IBar) {

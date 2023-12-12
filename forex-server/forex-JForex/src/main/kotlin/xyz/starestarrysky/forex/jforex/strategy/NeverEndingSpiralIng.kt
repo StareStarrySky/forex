@@ -121,6 +121,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         val checkFuse = checkFuse()
         if (!checkFuse) {
             configSetting.curFuse = 0
+            jForexEvent?.fused()
             return
         }
 

@@ -26,6 +26,7 @@ class JForexEventImpl : JForexEvent {
 
     @Async
     override fun orderCreated(order: IOrder) {
+        // TODO: encapsulate the notifications which email/sms/push...
         val context = Context().apply {
             this.setVariable("order", order)
         }
@@ -44,5 +45,12 @@ class JForexEventImpl : JForexEvent {
             throw BizException.builder().message(e.message).build()
         }
         javaMailSender.send(mimeMessage)
+    }
+
+    /**
+     * cannot trade because of fused
+     */
+    override fun fused() {
+        // TODO: notification from browser ? or phone push
     }
 }

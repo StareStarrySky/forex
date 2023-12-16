@@ -18,8 +18,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
 //    implementation("org.springframework.boot:spring-boot-starter-security")
-//    implementation("org.springframework.security.oauth:spring-security-oauth2:2.2.2.RELEASE")
-//    implementation("org.springframework.boot:spring-boot-starter-websocket")
+//    implementation("org.springframework.security.oauth:spring-security-oauth2")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {

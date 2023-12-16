@@ -4,17 +4,27 @@ import com.dukascopy.api.IOrder
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.mail.javamail.JavaMailSender
 import org.springframework.mail.javamail.MimeMessageHelper
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.thymeleaf.TemplateEngine
 import org.thymeleaf.context.Context
 import xyz.starestarrysky.forex.jforex.event.JForexEvent
 import xyz.starestarrysky.forex.server.common.base.BizException
+import xyz.starestarrysky.forex.server.model.StompModel
 import xyz.starestarrysky.forex.server.property.EmailConfig
+import xyz.starestarrysky.forex.server.property.StompConfig
 import javax.mail.MessagingException
 
+// TODO: encapsulate the notifications which email/sms/push...
 @Service
 class JForexEventImpl : JForexEvent {
+    @Autowired
+    private lateinit var stompConfig: StompConfig
+
+    @Autowired
+    private lateinit var messagingTemplate: SimpMessagingTemplate
+
     @Autowired
     private lateinit var emailConfig: EmailConfig
 
@@ -26,7 +36,6 @@ class JForexEventImpl : JForexEvent {
 
     @Async
     override fun orderCreated(order: IOrder) {
-        // TODO: encapsulate the notifications which email/sms/push...
         val context = Context().apply {
             this.setVariable("order", order)
         }
@@ -45,12 +54,25 @@ class JForexEventImpl : JForexEvent {
             throw BizException.builder().message(e.message).build()
         }
         javaMailSender.send(mimeMessage)
+
+        pushBrowser(StompModel().apply {
+            title = order.label
+            body = "${order.instrument.name()} ${order.orderCommand.name} ${order.openPrice}"
+        })
     }
 
     /**
      * cannot trade because of fused
      */
+    @Async
     override fun fused() {
-        // TODO: notification from browser ? or phone push
+        pushBrowser(StompModel().apply {
+            title = "fused"
+            body = "fused !"
+        })
+    }
+
+    private fun pushBrowser(stomp: StompModel) {
+        messagingTemplate.convertAndSend("${stompConfig.broker}/forex-web", stomp)
     }
 }

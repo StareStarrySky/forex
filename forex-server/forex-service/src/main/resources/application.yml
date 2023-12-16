@@ -10,3 +10,9 @@ spring:
 logging:
   level:
     web: trace
+push:
+  broker: /topic
+  endpoints:
+    -
+       point: /order
+       allowed-origins: "*"

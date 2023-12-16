@@ -8,14 +8,12 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import xyz.starestarrysky.forex.jforex.entity.ConfigSetting
 import xyz.starestarrysky.forex.server.forex.model.deserialize.InstrumentDeserializer
 import xyz.starestarrysky.forex.server.forex.model.serialize.InstrumentSerializer
-import xyz.starestarrysky.forex.server.forex.model.serialize.ObjectSerializer
 import java.io.Serializable
 import java.math.BigDecimal
 
 class ConfigSettingModel : ConfigSetting(), Serializable {
     companion object {
-        // TODO: update serialVersionUID
-        private const val serialVersionUID = 7494560114205123318L
+        private const val serialVersionUID = 7780827240446251804L
     }
 
     interface ModelView
@@ -45,10 +43,8 @@ class ConfigSettingModel : ConfigSetting(), Serializable {
     override var tradeAmount: BigDecimal = BigDecimal.ONE
 
     @JsonView(ModelView::class)
-    @JsonSerialize(using = ObjectSerializer::class)
     override var passageways: List<BigDecimal> = arrayListOf()
 
     @JsonView(ModelView::class)
-    @JsonSerialize(using = ObjectSerializer::class)
     override var curPassageway: BigDecimal = BigDecimal.ZERO
 }

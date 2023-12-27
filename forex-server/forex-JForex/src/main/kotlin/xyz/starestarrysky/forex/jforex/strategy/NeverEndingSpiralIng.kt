@@ -216,7 +216,9 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     }
 
     override fun createOrderModel(configSettings: MutableList<ConfigSetting>, instrument: Instrument, orderCommand: IEngine.OrderCommand) {
-        openOrder.order[instrument.name()] ?: return
+        if (openOrder.order[instrument.name()] != null) {
+            return
+        }
 
         val config = configSettings.find { configSetting -> configSetting.instrument == instrument } ?: return
 

@@ -96,7 +96,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             if (order == null || order.state != IOrder.State.FILLED) {
                 buyAtMarket(null)
             } else {
-                if (order.isLong) {
+                if (!order.isLong) {
                     buyAtMarket(order)
                 }
             }

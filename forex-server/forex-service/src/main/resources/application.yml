@@ -11,8 +11,10 @@ logging:
   level:
     web: trace
 push:
-  broker: /topic
-  endpoints:
-    -
-       point: /order
-       allowed-origins: "*"
+  stomp:
+    broker: /topic
+    endpoints:
+      -
+         point: /order
+         allowed-origins: "*"
+    stats-logging-period: 0

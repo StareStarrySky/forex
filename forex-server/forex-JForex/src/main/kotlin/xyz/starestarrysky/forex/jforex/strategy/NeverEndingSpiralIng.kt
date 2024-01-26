@@ -47,7 +47,9 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         val closestPassagewayNow = findClosestPassageway(configSetting.smallBIDBarOpen)
 
         val order = openOrder.order[configSetting.instrument.name()]
-        configSetting.openPassageway = if (order == null) BigDecimal.ZERO else findClosestPassageway(order.openPrice.toBigDecimal())
+        if (order != null) {
+            configSetting.openPassageway = findClosestPassageway(order.openPrice.toBigDecimal())
+        }
 
         if (configSetting.curPassageway.compareTo(closestPassagewayNow) != 0) {
             configSetting.curPassageway = closestPassagewayNow
@@ -118,7 +120,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
         closeOrder(order)
 
-        if (!checkFuse()) {
+        if (isFused()) {
             jForexEvent?.fused()
             return
         }
@@ -130,11 +132,11 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
         }
     }
 
-    private fun checkFuse(): Boolean {
+    private fun isFused(): Boolean {
         if (configSetting.curPassageway.compareTo(configSetting.openPassageway) != 0) {
             configSetting.curFuse = 0
         }
-        return configSetting.curFuse < configSetting.fuse
+        return configSetting.curFuse >= configSetting.fuse
     }
 
     private fun closeOrder(order: IOrder?) {
@@ -189,7 +191,7 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
     private fun generateRandom(): String {
         var answer = (Math.random() * 10000).toInt().toString()
         if (answer.length > 3) {
-            answer = answer.substring(0, 4)
+            answer = answer.substring(0, 3)
         }
         return answer
     }

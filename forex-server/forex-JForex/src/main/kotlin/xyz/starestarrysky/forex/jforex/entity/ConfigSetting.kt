@@ -31,7 +31,7 @@ open class ConfigSetting {
 
     open lateinit var curPassageway: BigDecimal
 
-    lateinit var openPassageway: BigDecimal
+    var openPassageway: BigDecimal = BigDecimal.ZERO
 
     lateinit var bigBIDBarHigh: BigDecimal
 

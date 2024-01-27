@@ -18,10 +18,32 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
 
     override lateinit var configSetting: ConfigSetting
 
+    override fun update() {
+        super.update()
+        passageway()
+    }
+
     override fun onBar() {
         fillConfigSetting()
-        passageway()
         detail()
+    }
+
+    private fun passageway() {
+        val order = openOrder.order[configSetting.instrument.name()]
+        if (order != null) {
+            configSetting.openPassageway = findClosestPassageway(order.openPrice.toBigDecimal())
+        }
+
+        val closestPassagewayNow = findClosestPassageway(configSetting.smallBIDBarOpen)
+        if (configSetting.curPassageway.compareTo(closestPassagewayNow) != 0) {
+            configSetting.curPassageway = closestPassagewayNow
+        }
+    }
+
+    private fun findClosestPassageway(price: BigDecimal): BigDecimal {
+        val averages = configSetting.passageways.map { passageway -> (passageway - price).abs() }
+        val minOf = averages.minOf { it }
+        return configSetting.passageways[averages.indexOf(minOf)]
     }
 
     private fun fillConfigSetting() {
@@ -41,25 +63,6 @@ open class NeverEndingSpiralIng : NeverEndingSpiralEd {
             bigASKBarOpen = bigASKBar.open.toBigDecimal()
             smallASKBarOpen = history.getBar(configSetting.instrument, configSetting.smallPeriod, OfferSide.ASK, 0).open.toBigDecimal()
         }
-    }
-
-    private fun passageway() {
-        val closestPassagewayNow = findClosestPassageway(configSetting.smallBIDBarOpen)
-
-        val order = openOrder.order[configSetting.instrument.name()]
-        if (order != null) {
-            configSetting.openPassageway = findClosestPassageway(order.openPrice.toBigDecimal())
-        }
-
-        if (configSetting.curPassageway.compareTo(closestPassagewayNow) != 0) {
-            configSetting.curPassageway = closestPassagewayNow
-        }
-    }
-
-    private fun findClosestPassageway(price: BigDecimal): BigDecimal {
-        val averages = configSetting.passageways.map { passageway -> (passageway - price).abs() }
-        val minOf = averages.minOf { it }
-        return configSetting.passageways[averages.indexOf(minOf)]
     }
 
     private fun detail() {
